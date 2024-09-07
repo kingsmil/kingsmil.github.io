@@ -1,133 +1,214 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { ChevronRight, Music, Github, Linkedin } from "lucide-react"
+import { useState, useEffect } from 'react'
+import Header from './components/Header'
+import Section from './components/Section'
+import ProjectList from './components/ProjectList'
+import ExperienceList from './components/ExperienceList'
+import ScrollToTopButton from './components/ScrollToTopButton'
+import Footer from './components/Footer'
+import { Card,CardContent } from './components/ui/Card'
+import { Button } from './components/ui/Button'
+import { ChevronDown, Github, Linkedin, Mail, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Download, Menu, X, ArrowUp } from 'lucide-react'
+  
+export default function Portfolio() {
+  const [activeSection, setActiveSection] = useState('home')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showScrollToTop, setShowScrollToTop] = useState(false)
 
-const projects = [
-  { id: 1, title: "Cherry Wine App", image: "/placeholder.svg?height=300&width=400" },
-  { id: 2, title: "Vintage Paper Blog", image: "/placeholder.svg?height=300&width=400" },
-  { id: 3, title: "Indie Music Player", image: "/placeholder.svg?height=300&width=400" },
-  { id: 4, title: "Retro Photo Gallery", image: "/placeholder.svg?height=300&width=400" },
-]
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollToTop(window.scrollY > 300)
+    }
 
-const CrumpledPaper = ({ children, isExpanded, onClick }) => (
-  <motion.div
-    className="relative w-48 h-48 md:w-64 md:h-64 m-4 cursor-pointer"
-    whileHover={{ scale: 1.05 }}
-    animate={{
-      width: isExpanded ? "100%" : "auto",
-      height: isExpanded ? "300px" : "auto",
-    }}
-    transition={{ duration: 0.5 }}
-    onClick={onClick}
-  >
-    <svg width="0" height="0">
-      <filter id="crumpled-paper">
-        <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" seed="1" />
-        <feDisplacementMap in="SourceGraphic" scale="20" />
-      </filter>
-    </svg>
-    <motion.div
-      className="absolute inset-0 bg-amber-100 rounded-full overflow-hidden"
-      style={{ filter: "url(#crumpled-paper)" }}
-      animate={{
-        borderRadius: isExpanded ? "16px" : "50%",
-      }}
-      transition={{ duration: 0.5 }}
-    >
-      {children}
-    </motion.div>
-  </motion.div>
-)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-export default function IndiePortfolio() {
-  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      const headerHeight = document.querySelector('header')?.clientHeight || 0
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.pageYOffset - headerHeight
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+      setActiveSection(sectionId)
+      setMobileMenuOpen(false)
+    }
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen)
+  }
+
+  const projects = [
+    {
+      title: "Project 1",
+      description: "A web application for managing personal finances. Built with React and Node.js, it features real-time data visualization and secure user authentication.",
+      image: "/placeholder.svg?height=400&width=600",
+      demo: "https://project1-demo.com",
+      code: "https://github.com/yourusername/project1"
+    },
+    {
+      title: "Project 2",
+      description: "An AI-powered chatbot for customer service. Developed using Python and TensorFlow, it employs natural language processing to provide accurate and helpful responses.",
+      image: "/placeholder.svg?height=400&width=600",
+      demo: "https://project2-demo.com",
+      code: "https://github.com/yourusername/project2"
+    },
+    {
+      title: "Project 3",
+      description: "A mobile app for tracking fitness goals. Created with React Native and Firebase, it offers personalized workout plans and progress tracking.",
+      image: "/placeholder.svg?height=400&width=600",
+      demo: "https://project3-demo.com",
+      code: "https://github.com/yourusername/project3"
+    },
+    {
+      title: "Project 4",
+      description: "An e-commerce platform for artisanal products. Built with Vue.js and Stripe integration, it provides a seamless shopping experience with secure payment processing.",
+      image: "/placeholder.svg?height=400&width=600",
+      demo: "https://project4-demo.com",
+      code: "https://github.com/yourusername/project4"
+    }
+  ]
+
+  const experiences = [
+    {
+      role: "Software Developer Intern",
+      company: "Tech Innovators Inc.",
+      duration: "June 2022 - August 2022",
+      responsibilities: [
+        "Developed and maintained web applications using React and Node.js",
+        "Collaborated with senior developers to implement new features",
+        "Participated in code reviews and agile development processes"
+      ]
+    },
+    {
+      role: "Junior Web Developer",
+      company: "Digital Solutions Ltd.",
+      duration: "September 2022 - May 2023",
+      responsibilities: [
+        "Created responsive and accessible web designs using HTML, CSS, and JavaScript",
+        "Optimized website performance and implemented SEO best practices",
+        "Worked closely with designers to bring mockups to life"
+      ]
+    },
+    {
+      role: "IT Support Specialist",
+      company: "Global Systems Corp.",
+      duration: "June 2023 - Present",
+      responsibilities: [
+        "Provided technical support for software and hardware issues",
+        "Managed and maintained company IT infrastructure",
+        "Implemented cybersecurity measures to protect sensitive data"
+      ]
+    }
+  ]
 
   return (
-    <div className="min-h-screen bg-amber-50 text-amber-900 p-8">
-      <header className="mb-12 text-center">
-        <h1 className="text-4xl font-bold mb-2">Jane Doe</h1>
-        <p className="text-xl">Final Year Student & Indie Developer</p>
-      </header>
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-100 text-amber-900">
+      <Header
+        activeSection={activeSection}
+        scrollToSection={scrollToSection}
+        toggleMobileMenu={toggleMobileMenu}
+        mobileMenuOpen={mobileMenuOpen}
+      />
 
-      <nav className="mb-12 flex justify-center space-x-4">
-        <a href="#about" className="hover:text-amber-700 transition-colors">About</a>
-        <a href="#projects" className="hover:text-amber-700 transition-colors">Projects</a>
-        <a href="#contact" className="hover:text-amber-700 transition-colors">Contact</a>
-      </nav>
-
-      <section id="about" className="mb-16 text-center max-w-2xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-4">About Me</h2>
-        <p className="mb-4">
-          Hey there! I'm Jane, a final year student with a passion for creating indie-inspired digital experiences. 
-          Just like grentperez's "Cherry Wine", I believe in crafting projects that are smooth, warm, and leave a lasting impression.
-        </p>
-        <div className="flex justify-center space-x-4">
-          <a href="#" className="text-amber-700 hover:text-amber-900 transition-colors">
-            <Github size={24} />
-          </a>
-          <a href="#" className="text-amber-700 hover:text-amber-900 transition-colors">
-            <Linkedin size={24} />
-          </a>
-          <a href="#" className="text-amber-700 hover:text-amber-900 transition-colors">
-            <Music size={24} />
-          </a>
+      <main className="container mx-auto px-4 md:px-6 py-12 space-y-24">
+      <main className="container mx-auto px-4 md:px-6 py-12 space-y-24">
+  <Section id="home" title="Home">
+    <div className="text-center">
+      <div className="mb-8">
+        <img
+          src="/placeholder.svg?height=200&width=200"
+          alt="Your Name"
+          className="w-48 h-48 rounded-full mx-auto border-4 border-amber-300 shadow-lg"
+        />
+      </div>
+      <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Name</h1>
+      <p className="text-xl mb-8">Software Developer | D&D Enthusiast | Boulderer</p>
+      <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <Button size="lg" onClick={() => window.open('/resume.pdf', '_blank')} className="text-white bg-black animate-bounce">
+          <Download className="mr-2 h-4 w-4" /> Download Resume
+        </Button>
+        <div className="flex space-x-4">
+          <Button size="icon" variant="outline" onClick={() => window.open('https://github.com/yourusername', '_blank')}>
+            <Github className="h-6 w-6" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => window.open('https://linkedin.com/in/yourusername', '_blank')}>
+            <Linkedin className="h-6 w-6" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => window.location.href = 'mailto:your.email@example.com'}>
+            <Mail className="h-6 w-6" />
+          </Button>
         </div>
-      </section>
+      </div>
+    </div>
+  </Section>
 
-      <section id="projects" className="mb-16">
-        <h2 className="text-2xl font-semibold mb-8 text-center">My Projects</h2>
-        <div className="flex flex-wrap justify-center">
-          {projects.map((project) => (
-            <CrumpledPaper
-              key={project.id}
-              isExpanded={expandedId === project.id}
-              onClick={() => setExpandedId(expandedId === project.id ? null : project.id)}
-            >
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center"
-                initial={{ opacity: 1 }}
-                animate={{ opacity: expandedId === project.id ? 0 : 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <h3 className="text-xl font-semibold text-amber-900">{project.title}</h3>
-              </motion.div>
-              <motion.img
-                src={project.image}
-                alt={project.title}
-                className="absolute inset-0 w-full h-full object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: expandedId === project.id ? 1 : 0 }}
-                transition={{ duration: 0.5 }}
-              />
-              <motion.div
-                className="absolute bottom-4 right-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: expandedId === project.id ? 1 : 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <ChevronRight className="text-white" size={24} />
-              </motion.div>
-            </CrumpledPaper>
-          ))}
-        </div>
-      </section>
+  <Section id="about" title="About Me">
+    <div className="max-w-2xl mx-auto">
+      <p className="text-lg leading-relaxed">
+        Hello! I'm a passionate software developer with a knack for creating elegant solutions to complex problems. My journey in tech began with a fascination for how things work, which led me to pursue a degree in Computer Science. Now, I channel that curiosity into building robust and user-friendly applications.
+      </p>
+      <p className="text-lg leading-relaxed mt-4">
+        When I'm not coding, you can find me scaling walls at the local bouldering gym, immersed in epic Dungeons & Dragons campaigns, or hitting the gym to stay fit. These diverse interests not only keep me balanced but also fuel my creativity and problem-solving skills in unexpected ways.
+      </p>
+      <p className="text-lg leading-relaxed mt-4">
+        I'm always excited to take on new challenges and collaborate on innovative projects. Let's create something amazing together!
+      </p>
+    </div>
+  </Section>
 
-      <section id="contact" className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Get in Touch</h2>
-        <p className="mb-4">Feel free to reach out for collaborations or just a friendly chat.</p>
-        <a
-          href="mailto:jane@example.com"
-          className="inline-block bg-amber-700 text-white px-6 py-2 rounded-full hover:bg-amber-800 transition-colors"
-        >
-          Say Hello
-        </a>
-      </section>
+  <Section id="experience" title="Experience">
+    <ExperienceList experiences={experiences} />
+  </Section>
 
-      <footer className="mt-16 text-center text-sm text-amber-700">
-        <p>&copy; 2023 Jane Doe. All rights reserved.</p>
-      </footer>
+  <Section id="education" title="Education">
+    <Card className="hover:shadow-md transition-shadow duration-300">
+      <CardContent className="p-6">
+        <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science</h3>
+        <p className="text-sm text-amber-700 mb-2">University of Technology • 2018 - 2022</p>
+        <p className="text-sm">Relevant coursework: Data Structures, Algorithms, Web Development, Database Systems</p>
+      </CardContent>
+    </Card>
+  </Section>
+
+  <Section id="projects" title="Projects">
+    <ProjectList projects={projects} />
+  </Section>
+
+  <Section id="contact" title="Get in Touch">
+    <div className="max-w-md mx-auto text-center">
+      <p className="mb-6">I'm always open to new opportunities and collaborations. Feel free to reach out!</p>
+      <div className="flex justify-center space-x-4">
+        <Button size="icon" variant="outline" onClick={() => window.open('https://github.com/yourusername', '_blank')}>
+          <Github className="h-6 w-6" />
+        </Button>
+        <Button size="icon" variant="outline" onClick={() => window.open('https://linkedin.com/in/yourusername', '_blank')}>
+          <Linkedin className="h-6 w-6" />
+        </Button>
+        <Button size="icon" variant="outline" onClick={() => window.location.href = 'mailto:your.email@example.com'}>
+          <Mail className="h-6 w-6" />
+        </Button>
+      </div>
+    </div>
+  </Section>
+</main>
+
+      </main>
+
+      <Footer />
+
+      <ScrollToTopButton showScrollToTop={showScrollToTop} scrollToTop={scrollToTop} />
     </div>
   )
 }
