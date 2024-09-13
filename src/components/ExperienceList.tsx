@@ -40,7 +40,7 @@ export default function ExperienceList({ experiences }: ExperienceListProps) {
               onClick={() => toggleExperience(index)}
             >
               <ChevronRightIcon className={`h-4 w-4 mr-2 transition-transform ${expandedExperiences.includes(index) ? 'rotate-90' : ''}`} />
-              {expandedExperiences.includes(index) ? 'Hide' : 'Show'} responsibilities
+              {expandedExperiences.includes(index) ? 'Hide' : 'Show'} details
             </Button>
             <div className={`mt-2 overflow-hidden transition-all duration-300 ease-in-out ${expandedExperiences.includes(index) ? 'max-h-96' : 'max-h-0'}`}>
               <ul className="list-disc list-inside space-y-2 text-sm">

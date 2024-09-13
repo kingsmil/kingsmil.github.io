@@ -19,7 +19,7 @@ export default function Header({ activeSection, scrollToSection, toggleMobileMen
     <header ref={headerRef} className="sticky top-0 z-20 bg-amber-100 bg-opacity-90 backdrop-blur-sm">
       <nav className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Your Name</h1>
+          <h1 className="text-2xl font-bold">Moe</h1>
           <Button
             variant="ghost"
             size="icon"

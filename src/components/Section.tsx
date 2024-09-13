@@ -11,6 +11,7 @@ export default function Section({ id, title, children }: SectionProps) {
     <section id={id} className="space-y-8">
       <h2 className="text-3xl font-semibold mb-6">{title}</h2>
       {children}
+      <div className = "container mx-auto px-4 py- md:px-6 py-3 space-y-12"/>
     </section>
   )
 }

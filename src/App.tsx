@@ -7,10 +7,15 @@ import ProjectList from './components/ProjectList'
 import ExperienceList from './components/ExperienceList'
 import ScrollToTopButton from './components/ScrollToTopButton'
 import Footer from './components/Footer'
-import { Card,CardContent } from './components/ui/Card'
+import { Card, CardContent } from './components/ui/Card'
 import { Button } from './components/ui/Button'
-import { ChevronDown, Github, Linkedin, Mail, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Download, Menu, X, ArrowUp } from 'lucide-react'
-  
+import SocialButton from './components/SocialButton'
+import { Download, Menu, X, ArrowUp } from 'lucide-react'
+import dontPaisehImage from './images/dont_paiseh.png'
+import rizzumeImage from './images/rizz-ume.png'
+import bcrImage from './images/blockchain.png'
+import moePhoto from './images/moe_photo.jpeg'
+
 export default function Portfolio() {
   const [activeSection, setActiveSection] = useState('home')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -33,7 +38,7 @@ export default function Portfolio() {
       const offsetPosition = elementPosition + window.pageYOffset - headerHeight
 
       window.scrollTo({
-        top: offsetPosition,
+        top: offsetPosition - 20,
         behavior: 'smooth'
       })
       setActiveSection(sectionId)
@@ -51,64 +56,57 @@ export default function Portfolio() {
 
   const projects = [
     {
-      title: "Project 1",
-      description: "A web application for managing personal finances. Built with React and Node.js, it features real-time data visualization and secure user authentication.",
-      image: "/placeholder.svg?height=400&width=600",
-      demo: "https://project1-demo.com",
-      code: "https://github.com/yourusername/project1"
+      title: "Don't Paiseh",
+      description: "An innovative application that presents users with social questions and answers. Deployed a full end-to-end mobile-first WebApp in 24 hours with a team of four, led frontend development.",
+      image: dontPaisehImage,
+      demo: "https://devpost.com/software/don-t-paiseh",
+      code: "https://github.com/moroha29/HackAndRollFE"
     },
     {
-      title: "Project 2",
-      description: "An AI-powered chatbot for customer service. Developed using Python and TensorFlow, it employs natural language processing to provide accurate and helpful responses.",
-      image: "/placeholder.svg?height=400&width=600",
-      demo: "https://project2-demo.com",
-      code: "https://github.com/yourusername/project2"
+      title: "Rizz-Umé",
+      description: "A Telegram bot serving as a personal career consultant for students. Led a team of four to develop this bot, which was deployed as an MVP in 48 hours with swift authentication and database integration.",
+      image: rizzumeImage,
+      demo: "https://devpost.com/software/rizz-ume?ref_content=user-portfolio&ref_feature=in_progress",
+      code: "https://github.com/kingsmil/techfestival"
     },
     {
-      title: "Project 3",
-      description: "A mobile app for tracking fitness goals. Created with React Native and Firebase, it offers personalized workout plans and progress tracking.",
-      image: "/placeholder.svg?height=400&width=600",
-      demo: "https://project3-demo.com",
-      code: "https://github.com/yourusername/project3"
-    },
-    {
-      title: "Project 4",
-      description: "An e-commerce platform for artisanal products. Built with Vue.js and Stripe integration, it provides a seamless shopping experience with secure payment processing.",
-      image: "/placeholder.svg?height=400&width=600",
-      demo: "https://project4-demo.com",
-      code: "https://github.com/yourusername/project4"
+      title: "NTU Blockchain Research",
+      description: "Did research for Andrea Nanetti. Developed a feature using smart contracts to facilitate history collaboration and transparency, designed the permission management system to control user access and track document changes.",
+      image: bcrImage,
+      demo: "",
+      code: "https://github.com/kang5647/hass_blockchain_project"
     }
   ]
 
   const experiences = [
     {
-      role: "Software Developer Intern",
-      company: "Tech Innovators Inc.",
-      duration: "June 2022 - August 2022",
+      role: "Software Data Engineer Intern",
+      company: "Advanced Micro Devices (AMD)",
+      duration: "May 2023 — Aug 2023",
       responsibilities: [
-        "Developed and maintained web applications using React and Node.js",
-        "Collaborated with senior developers to implement new features",
-        "Participated in code reviews and agile development processes"
+        "Constructed an ETL pipeline to optimize real-time streaming data processing and analysis; saved executives 90% of their data review time and enabled data-driven decision-making.",
+        "Enhanced scalable data quality and management, directly improving data cleaning processes and model accuracy for predictive analytics; improved the speed of forecasting models up to 10x.",
+        "Streamlined diagnostics through automation, resulting in a 7.5-hour time savings each week."
       ]
     },
     {
-      role: "Junior Web Developer",
-      company: "Digital Solutions Ltd.",
-      duration: "September 2022 - May 2023",
+      role: "Software AI Engineer Intern",
+      company: "Central Provident Fund (CPF)",
+      duration: "May 2023 — Aug 2023",
       responsibilities: [
-        "Created responsive and accessible web designs using HTML, CSS, and JavaScript",
-        "Optimized website performance and implemented SEO best practices",
-        "Worked closely with designers to bring mockups to life"
+        "Integrated a ChatGPT variant into a chatbot with open-source LLMs (LLaMA); enhanced user interaction and reduced manual document search time by 2.3x.",
+        "Collaborated on multiple cross-functional artificial intelligence (AI) projects at CPF, leading to substantial man-hour savings by 83% (from 60 to 5 minutes per day).",
+        "Engineered internal tooling for low-code prompt engineers with a React frontend and Jupyter notebooks; increased the speed of testing and iteration on prompts by an estimated 60%."
       ]
     },
     {
-      role: "IT Support Specialist",
-      company: "Global Systems Corp.",
-      duration: "June 2023 - Present",
+      role: "FullStack Engineer Intern",
+      company: "Promisphere Official (Backed by DBS)",
+      duration: "May 2022 — Aug 2022",
       responsibilities: [
-        "Provided technical support for software and hardware issues",
-        "Managed and maintained company IT infrastructure",
-        "Implemented cybersecurity measures to protect sensitive data"
+        "Built and established full cloud infrastructure and systems; established CI/CD Pipelines for efficient deployment in cloud infrastructure, reducing deployment time by 77%.",
+        "Executed test-driven development on a Full Stack Web Application by conducting Unit testing, Integration Testing, and E2E Testing; authored over 50+ tests.",
+        "Initiated the development of a dApp on blockchain soulbound tokens using ERC-721 Protocol within a 2-week timeframe; articulated project milestones and outlined a roadmap for product expansion."
       ]
     }
   ]
@@ -122,65 +120,60 @@ export default function Portfolio() {
         mobileMenuOpen={mobileMenuOpen}
       />
 
-      <main className="container mx-auto px-4 md:px-6 py-12 space-y-24">
-      <main className="container mx-auto px-4 md:px-6 py-12 space-y-24">
-  <Section id="home" title="Home">
-    <div className="text-center">
-      <div className="mb-8">
-        <img
-          src="/placeholder.svg?height=200&width=200"
-          alt="Your Name"
-          className="w-48 h-48 rounded-full mx-auto border-4 border-amber-300 shadow-lg"
-        />
-      </div>
-      <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Name</h1>
-      <p className="text-xl mb-8">Software Developer | D&D Enthusiast | Boulderer</p>
-      <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-        <Button size="lg" onClick={() => window.open('/resume.pdf', '_blank')} className="text-white bg-black animate-bounce">
-          <Download className="mr-2 h-4 w-4" /> Download Resume
-        </Button>
-        <div className="flex space-x-4">
-          <Button size="icon" variant="outline" onClick={() => window.open('https://github.com/yourusername', '_blank')}>
-            <Github className="h-6 w-6" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={() => window.open('https://linkedin.com/in/yourusername', '_blank')}>
-            <Linkedin className="h-6 w-6" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={() => window.location.href = 'mailto:your.email@example.com'}>
-            <Mail className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  </Section>
+      <main className="container mx-auto px-4 md:px-6 py-12 space-y-0">
+      <main className="container mx-auto px-4 md:px-6 py-0 space-y-0">
+      <Section title="" id="home">
+          <div className="text-center">
+            <div className="mb-8">
+              <img
+                src={moePhoto}
+                alt="Moe Thu"
+                className="w-48 h-48 object-cover rounded-full mx-auto border-4 border-amber-300 shadow-lg"
+              />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Moe T.</h1>
+            <p className="text-xl mb-8">Software Developer | D&D Enthusiast | Boulderer</p>
+            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <Button size="lg" onClick={() => window.open('/githubres.pdf', '_blank')} className="text-white bg-black animate-bounce">
+                <Download className="mr-2 h-4 w-4" /> Download Resume
+              </Button>
+              <div className="flex space-x-4">
+                <SocialButton type="github" url="https://github.com/kingsmil" />
+                <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
+                <SocialButton type="email" url="moe.tiankai@gmail.com" />
+              </div>
+            </div>
+          </div>
+        </Section>
 
-  <Section id="about" title="About Me">
-    <div className="max-w-2xl mx-auto">
-      <p className="text-lg leading-relaxed">
-        Hello! I'm a passionate software developer with a knack for creating elegant solutions to complex problems. My journey in tech began with a fascination for how things work, which led me to pursue a degree in Computer Science. Now, I channel that curiosity into building robust and user-friendly applications.
-      </p>
-      <p className="text-lg leading-relaxed mt-4">
-        When I'm not coding, you can find me scaling walls at the local bouldering gym, immersed in epic Dungeons & Dragons campaigns, or hitting the gym to stay fit. These diverse interests not only keep me balanced but also fuel my creativity and problem-solving skills in unexpected ways.
-      </p>
-      <p className="text-lg leading-relaxed mt-4">
-        I'm always excited to take on new challenges and collaborate on innovative projects. Let's create something amazing together!
-      </p>
-    </div>
-  </Section>
+        <Section id="about" title="About Me">
+          <div className="max-w-2xl mx-auto">
+            <p className="text-lg leading-relaxed">
+              Hey! I build stuff!
+            </p>
+            <p className="text-lg leading-relaxed mt-4">
+              When I'm not coding, you can find me scaling walls at the local bouldering gym, immersed in epic Dungeons & Dragons campaigns, or hitting the gym to stay fit. These diverse interests not only keep me balanced but also fuel my creativity and problem-solving skills in unexpected ways.
+            </p>
+            <p className="text-lg leading-relaxed mt-4">
+              I'm always excited to take on new challenges and collaborate on innovative projects. Let's create something amazing together!
+            </p>
+          </div>
+        </Section>
 
   <Section id="experience" title="Experience">
     <ExperienceList experiences={experiences} />
   </Section>
 
   <Section id="education" title="Education">
-    <Card className="hover:shadow-md transition-shadow duration-300">
-      <CardContent className="p-6">
-        <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science</h3>
-        <p className="text-sm text-amber-700 mb-2">University of Technology • 2018 - 2022</p>
-        <p className="text-sm">Relevant coursework: Data Structures, Algorithms, Web Development, Database Systems</p>
-      </CardContent>
-    </Card>
-  </Section>
+          <Card className="hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science</h3>
+              <p className="text-sm text-amber-700 mb-2">Nanyang Technological University</p>
+              <p className="text-sm text-amber-700 mb-2">Exchange Semester at Northeastern University for Computer Science</p>
+              <p className="text-sm">Relevant coursework: Data Structures, Algorithms, Web Development, Database Systems</p>
+            </CardContent>
+          </Card>
+        </Section>
 
   <Section id="projects" title="Projects">
     <ProjectList projects={projects} />
@@ -190,15 +183,9 @@ export default function Portfolio() {
     <div className="max-w-md mx-auto text-center">
       <p className="mb-6">I'm always open to new opportunities and collaborations. Feel free to reach out!</p>
       <div className="flex justify-center space-x-4">
-        <Button size="icon" variant="outline" onClick={() => window.open('https://github.com/yourusername', '_blank')}>
-          <Github className="h-6 w-6" />
-        </Button>
-        <Button size="icon" variant="outline" onClick={() => window.open('https://linkedin.com/in/yourusername', '_blank')}>
-          <Linkedin className="h-6 w-6" />
-        </Button>
-        <Button size="icon" variant="outline" onClick={() => window.location.href = 'mailto:your.email@example.com'}>
-          <Mail className="h-6 w-6" />
-        </Button>
+        <SocialButton type="github" url="https://github.com/kingsmil" />
+        <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
+        <SocialButton type="email" url="moe.tiankai@gmail.com" />
       </div>
     </div>
   </Section>
