@@ -82,7 +82,7 @@ export default function Portfolio() {
     {
       role: "Software Data Engineer Intern",
       company: "Advanced Micro Devices (AMD)",
-      duration: "May 2023 — Aug 2023",
+      duration: "Jan 2024 — Aug 2024",
       responsibilities: [
         "Constructed an ETL pipeline to optimize real-time streaming data processing and analysis; saved executives 90% of their data review time and enabled data-driven decision-making.",
         "Enhanced scalable data quality and management, directly improving data cleaning processes and model accuracy for predictive analytics; improved the speed of forecasting models up to 10x.",
