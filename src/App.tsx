@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import Section from './components/Section'
 import ProjectList from './components/ProjectList'
@@ -10,20 +10,51 @@ import Footer from './components/Footer'
 import { Card, CardContent } from './components/ui/Card'
 import { Button } from './components/ui/Button'
 import SocialButton from './components/SocialButton'
-import { Download, Menu, X, ArrowUp } from 'lucide-react'
+import { Download } from 'lucide-react'
 import dontPaisehImage from './images/dont_paiseh.png'
 import rizzumeImage from './images/rizz-ume.png'
 import bcrImage from './images/blockchain.png'
 import moePhoto from './images/moe_photo.jpeg'
 
+// Define a type for the sectionRefs object
+type SectionRefs = {
+  [key: string]: HTMLElement | null;
+}
+
 export default function Portfolio() {
-  const [activeSection, setActiveSection] = useState('home')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  const [activeSection, setActiveSection] = useState<string>('home')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
+  const [showScrollToTop, setShowScrollToTop] = useState<boolean>(false)
+  const sectionRefs = useRef<SectionRefs>({
+    about: null,
+    experience: null,
+    education: null,
+    projects: null,
+    contact: null
+  })
+
+  const findActiveSection = () => {
+    const scrollPosition = window.scrollY + window.innerHeight / 2 // Add some offset to consider the middle of the viewport
+    let closestSection = 'about'
+    let minDifference = Infinity
+
+    for (const section in sectionRefs.current) {
+      const ref = sectionRefs.current[section]
+      if (ref) {
+        const difference = Math.abs(ref.offsetTop - scrollPosition)
+        if (difference < minDifference) {
+          minDifference = difference
+          closestSection = section
+        }
+      }
+    }
+    setActiveSection(closestSection)
+  }
 
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollToTop(window.scrollY > 300)
+      findActiveSection()
     }
 
     window.addEventListener('scroll', handleScroll)
@@ -31,21 +62,26 @@ export default function Portfolio() {
   }, [])
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      const headerHeight = document.querySelector('header')?.clientHeight || 0
-      const elementPosition = element.getBoundingClientRect().top
-      const offsetPosition = elementPosition + window.pageYOffset - headerHeight
-
-      window.scrollTo({
-        top: offsetPosition - 20,
-        behavior: 'smooth'
-      })
-      setActiveSection(sectionId)
-      setMobileMenuOpen(false)
+    if (sectionId === 'contact') {
+      // Scroll all the way to the bottom
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    } else {
+      // Scroll to the specified section
+      const element = sectionRefs.current[sectionId];
+      if (element) {
+        setActiveSection(sectionId);  // Manually set the active section
+  
+        element.scrollIntoView({
+          behavior: 'smooth', // Smooth scrolling
+          block: 'end', // Scrolls to the top of the section
+          inline: 'nearest' // Aligns the section horizontally if necessary
+        });
+  
+        setMobileMenuOpen(false);
+      }
     }
   }
-
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -53,7 +89,6 @@ export default function Portfolio() {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen)
   }
-
   const projects = [
     {
       title: "Don't Paiseh",
@@ -121,62 +156,59 @@ export default function Portfolio() {
       />
 
       <main className="container mx-auto px-4 md:px-6 py-12 space-y-0">
-      <main className="container mx-auto px-4 md:px-6 py-0 space-y-0">
-      <Section title="" id="home">
-      <div className="text-center">
-        <div className="mb-8">
-          <img
-            src={moePhoto}
-            alt="Moe Thu"
-            className="w-48 h-48 object-cover rounded-full mx-auto border-4 border-amber-300 shadow-lg"
-          />
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Moe T.</h1>
-        <div className="text-xl mb-8 flex flex-wrap justify-center gap-2">
-          <span>Software Developer</span>
-          <span>|</span>
-          <span>D&D Enthusiast</span>
-          <span>|</span>
-          <span>Boulderer</span>
-        </div>
-        <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <Button
-            size="lg"
-            onClick={() => window.open('/githubres.pdf', '_blank')}
-            className="text-white bg-black animate-bounce"
-          >
-            <Download className="mr-2 h-4 w-4" /> Download Resume
-          </Button>
-          <div className="flex space-x-4">
-            <SocialButton type="github" url="https://github.com/kingsmil" />
-            <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
-            <SocialButton type="email" url="moe.tiankai@gmail.com" />
+        <Section ref={el => sectionRefs.current.home = el} title="" id="home">
+          <div className="text-center">
+            <div className="mb-8">
+              <img
+                src={moePhoto}
+                alt="Moe Thu"
+                className="w-48 h-48 object-cover rounded-full mx-auto border-4 border-amber-300 shadow-lg"
+              />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Moe T.</h1>
+            <div className="text-xl mb-8 flex flex-wrap justify-center gap-2">
+              <span>Software Developer</span>
+              <span>|</span>
+              <span>D&D Enthusiast</span>
+              <span>|</span>
+              <span>Boulderer</span>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <Button
+                size="lg"
+                onClick={() => window.open('/githubres.pdf', '_blank')}
+                className="text-white bg-black animate-bounce"
+              >
+                <Download className="mr-2 h-4 w-4" /> Download Resume
+              </Button>
+              <div className="flex space-x-4">
+                <SocialButton type="github" url="https://github.com/kingsmil" />
+                <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
+                <SocialButton type="email" url="moe.tiankai@gmail.com" />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </Section>
+        </Section>
 
+        <Section ref={el => sectionRefs.current.about = el} id="about" title="About Me">
+          <div className="max-w-2xl mx-auto">
+            <p className="text-lg leading-relaxed">
+              Hey there, I like to create things.
+            </p>
+            <p className="text-lg leading-relaxed mt-4">
+              When I'm not buried in code, you'll find me at the bouldering gym, diving deep into Dungeons & Dragons, or just working out to keep my mind clear.
+            </p>
+            <p className="text-lg leading-relaxed mt-4">
+              I'm always up for a new challenge and love collaborating on projects that push boundaries. Let’s make something special.
+            </p>
+          </div>
+        </Section>
 
-    <Section id="about" title="About Me">
-  <div className="max-w-2xl mx-auto">
-    <p className="text-lg leading-relaxed">
-      Hey there, I like to create things.
-    </p>
-    <p className="text-lg leading-relaxed mt-4">
-      When I'm not buried in code, you'll find me at the bouldering gym, diving deep into Dungeons & Dragons, or just working out to keep my mind clear.
-    </p>
-    <p className="text-lg leading-relaxed mt-4">
-      I'm always up for a new challenge and love collaborating on projects that push boundaries. Let’s make something special.
-    </p>
-  </div>
-</Section>
+        <Section ref={el => sectionRefs.current.experience = el} id="experience" title="Experience">
+          <ExperienceList experiences={experiences} />
+        </Section>
 
-
-  <Section id="experience" title="Experience">
-    <ExperienceList experiences={experiences} />
-  </Section>
-
-  <Section id="education" title="Education">
+        <Section ref={el => sectionRefs.current.education = el} id="education" title="Education">
           <Card className="hover:shadow-md transition-shadow duration-300">
             <CardContent className="p-6">
               <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science</h3>
@@ -187,22 +219,20 @@ export default function Portfolio() {
           </Card>
         </Section>
 
-  <Section id="projects" title="Projects">
-    <ProjectList projects={projects} />
-  </Section>
+        <Section ref={el => sectionRefs.current.projects = el} id="projects" title="Projects">
+          <ProjectList projects={projects} />
+        </Section>
 
-  <Section id="contact" title="Get in Touch">
-    <div className="max-w-md mx-auto text-center">
-      <p className="mb-6">I'm always open to new opportunities and collaborations. Feel free to reach out!</p>
-      <div className="flex justify-center space-x-4">
-        <SocialButton type="github" url="https://github.com/kingsmil" />
-        <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
-        <SocialButton type="email" url="moe.tiankai@gmail.com" />
-      </div>
-    </div>
-  </Section>
-</main>
-
+        <Section ref={el => sectionRefs.current.contact = el} id="contact" title="Get in Touch">
+          <div className="max-w-md mx-auto text-center">
+            <p className="mb-6">I'm always open to new opportunities and collaborations. Feel free to reach out!</p>
+            <div className="flex justify-center space-x-4">
+              <SocialButton type="github" url="https://github.com/kingsmil" />
+              <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
+              <SocialButton type="email" url="moe.tiankai@gmail.com" />
+            </div>
+          </div>
+        </Section>
       </main>
 
       <Footer />
