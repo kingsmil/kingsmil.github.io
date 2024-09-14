@@ -9,7 +9,7 @@ interface NavProps {
 export default function Nav({ activeSection, scrollToSection, mobile = false }: NavProps) {
   return (
     <ul className={`${mobile ? 'mt-4 space-y-2 bg-amber-50 rounded-lg p-4 shadow-md' : 'hidden md:flex space-x-6'}`}>
-      {['about', 'experience', 'education', 'projects', 'contact'].map((section) => (
+      {['home','about', 'experience', 'education', 'projects'].map((section) => (
         <li key={section}>
           <Button
             variant="ghost"

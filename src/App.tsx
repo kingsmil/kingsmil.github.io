@@ -25,6 +25,7 @@ export default function Portfolio() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false)
   const [showScrollToTop, setShowScrollToTop] = useState<boolean>(false)
   const sectionRefs = useRef<SectionRefs>({
+    home: null,
     about: null,
     experience: null,
     education: null,
@@ -33,23 +34,26 @@ export default function Portfolio() {
   })
 
   const findActiveSection = () => {
-    const scrollPosition = window.scrollY + window.innerHeight / 2 
-    let closestSection = 'about'
-    let minDifference = Infinity
-
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 0;
+    const scrollPosition = window.scrollY + headerHeight + 1; // Adjusted scroll position
+  
     for (const section in sectionRefs.current) {
-      const ref = sectionRefs.current[section]
+      const ref = sectionRefs.current[section];
       if (ref) {
-        const difference = Math.abs(ref.offsetTop - scrollPosition)
-        if (difference < minDifference) {
-          minDifference = difference
-          closestSection = section
+        const sectionTop = ref.offsetTop - 20;
+        const sectionBottom = ref.offsetTop -20 + ref.offsetHeight;
+  
+        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+          setActiveSection(section);
+          break; // Active section found
         }
       }
     }
-    setActiveSection(closestSection)
-  }
-
+  };
+  
+  
+  
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollToTop(window.scrollY > 300)
@@ -61,23 +65,19 @@ export default function Portfolio() {
   }, [])
 
   const scrollToSection = (sectionId: string) => {
-    if (sectionId === 'contact') {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    } else {
-      const element = sectionRefs.current[sectionId];
-      if (element) {
-        setActiveSection(sectionId);  
-  
-        element.scrollIntoView({
-          behavior: 'smooth', 
-          block: 'end', 
-          inline: 'nearest' 
-        });
-  
-        setMobileMenuOpen(false);
-      }
+    const element = sectionRefs.current[sectionId];
+    if (element) {
+      const header = document.querySelector('header');
+      const headerHeight = header ? header.offsetHeight : 0;
+      const offsetPosition = element.offsetTop - headerHeight - 15;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+      setActiveSection(sectionId);
+      setMobileMenuOpen(false);
     }
-  }
+  };
+  
+
+  
   
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
