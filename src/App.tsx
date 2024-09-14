@@ -16,7 +16,6 @@ import rizzumeImage from './images/rizz-ume.png'
 import bcrImage from './images/blockchain.png'
 import moePhoto from './images/moe_photo.jpeg'
 
-// Define a type for the sectionRefs object
 type SectionRefs = {
   [key: string]: HTMLElement | null;
 }
@@ -34,7 +33,7 @@ export default function Portfolio() {
   })
 
   const findActiveSection = () => {
-    const scrollPosition = window.scrollY + window.innerHeight / 2 // Add some offset to consider the middle of the viewport
+    const scrollPosition = window.scrollY + window.innerHeight / 2 
     let closestSection = 'about'
     let minDifference = Infinity
 
@@ -63,18 +62,16 @@ export default function Portfolio() {
 
   const scrollToSection = (sectionId: string) => {
     if (sectionId === 'contact') {
-      // Scroll all the way to the bottom
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     } else {
-      // Scroll to the specified section
       const element = sectionRefs.current[sectionId];
       if (element) {
-        setActiveSection(sectionId);  // Manually set the active section
+        setActiveSection(sectionId);  
   
         element.scrollIntoView({
-          behavior: 'smooth', // Smooth scrolling
-          block: 'end', // Scrolls to the top of the section
-          inline: 'nearest' // Aligns the section horizontally if necessary
+          behavior: 'smooth', 
+          block: 'end', 
+          inline: 'nearest' 
         });
   
         setMobileMenuOpen(false);
