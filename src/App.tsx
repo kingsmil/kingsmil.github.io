@@ -123,42 +123,54 @@ export default function Portfolio() {
       <main className="container mx-auto px-4 md:px-6 py-12 space-y-0">
       <main className="container mx-auto px-4 md:px-6 py-0 space-y-0">
       <Section title="" id="home">
-          <div className="text-center">
-            <div className="mb-8">
-              <img
-                src={moePhoto}
-                alt="Moe Thu"
-                className="w-48 h-48 object-cover rounded-full mx-auto border-4 border-amber-300 shadow-lg"
-              />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Moe T.</h1>
-            <p className="text-xl mb-8">Software Developer | D&D Enthusiast | Boulderer</p>
-            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button size="lg" onClick={() => window.open('/githubres.pdf', '_blank')} className="text-white bg-black animate-bounce">
-                <Download className="mr-2 h-4 w-4" /> Download Resume
-              </Button>
-              <div className="flex space-x-4">
-                <SocialButton type="github" url="https://github.com/kingsmil" />
-                <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
-                <SocialButton type="email" url="moe.tiankai@gmail.com" />
-              </div>
-            </div>
+      <div className="text-center">
+        <div className="mb-8">
+          <img
+            src={moePhoto}
+            alt="Moe Thu"
+            className="w-48 h-48 object-cover rounded-full mx-auto border-4 border-amber-300 shadow-lg"
+          />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Moe T.</h1>
+        <div className="text-xl mb-8 flex flex-wrap justify-center gap-2">
+          <span>Software Developer</span>
+          <span>|</span>
+          <span>D&D Enthusiast</span>
+          <span>|</span>
+          <span>Boulderer</span>
+        </div>
+        <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+          <Button
+            size="lg"
+            onClick={() => window.open('/githubres.pdf', '_blank')}
+            className="text-white bg-black animate-bounce"
+          >
+            <Download className="mr-2 h-4 w-4" /> Download Resume
+          </Button>
+          <div className="flex space-x-4">
+            <SocialButton type="github" url="https://github.com/kingsmil" />
+            <SocialButton type="linkedin" url="https://linkedin.com/in/moe-thu" />
+            <SocialButton type="email" url="moe.tiankai@gmail.com" />
           </div>
-        </Section>
+        </div>
+      </div>
+    </Section>
 
-        <Section id="about" title="About Me">
-          <div className="max-w-2xl mx-auto">
-            <p className="text-lg leading-relaxed">
-              Hey! I build stuff!
-            </p>
-            <p className="text-lg leading-relaxed mt-4">
-              When I'm not coding, you can find me scaling walls at the local bouldering gym, immersed in epic Dungeons & Dragons campaigns, or hitting the gym to stay fit. These diverse interests not only keep me balanced but also fuel my creativity and problem-solving skills in unexpected ways.
-            </p>
-            <p className="text-lg leading-relaxed mt-4">
-              I'm always excited to take on new challenges and collaborate on innovative projects. Let's create something amazing together!
-            </p>
-          </div>
-        </Section>
+
+    <Section id="about" title="About Me">
+  <div className="max-w-2xl mx-auto">
+    <p className="text-lg leading-relaxed">
+      Hey there, I like to create things.
+    </p>
+    <p className="text-lg leading-relaxed mt-4">
+      When I'm not buried in code, you'll find me at the bouldering gym, diving deep into Dungeons & Dragons, or just working out to keep my mind clear.
+    </p>
+    <p className="text-lg leading-relaxed mt-4">
+      I'm always up for a new challenge and love collaborating on projects that push boundaries. Let’s make something special.
+    </p>
+  </div>
+</Section>
+
 
   <Section id="experience" title="Experience">
     <ExperienceList experiences={experiences} />

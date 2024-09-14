@@ -33,7 +33,10 @@ export default function ExperienceList({ experiences }: ExperienceListProps) {
         <Card key={index} className="mb-8 ml-8 hover:shadow-md transition-shadow duration-300">
           <CardContent className="p-6">
             <h3 className="text-xl font-semibold mb-2">{exp.role}</h3>
-            <p className="text-sm text-amber-700 mb-2">{exp.company} • {exp.duration}</p>
+            <div className="text-sm flex flex-wrap text-amber-700 mb-2">
+            <span>{exp.company}</span>
+            <span className="mr-2 ml-2">•</span>
+            <span>{exp.duration}</span></div>
             <Button
               variant="ghost"
               className="text-left p-0 hover:bg-transparent"
