@@ -112,6 +112,17 @@ export default function Portfolio() {
 
   const experiences = [
     {
+      role: "Software Engineer",
+      company: "OKX (Core Trading Team)",
+      duration: "June 2025 — Present",
+      responsibilities: [
+        "Delivered the UAE Retail Derivatives launch and CeDeFi Boost, achieving a 6x conversion rate increase (2% → 12%) for high-tier users and growing the trading user base by 20% through optimized migration flows.",
+        "Implemented a self-initiated integration testing framework that reduced deployment testing time by 90% (20 min → 2 min); authored AI-assisted tests and rules, significantly increasing quality.",
+        "Diagnosed and fixed deep-layer distributed system bugs (NPE, PolarDB, Flink, cross-repo caching) that blocked major features like Limit Orders, preventing significant reputation damage and unblocking complex API releases.",
+        "Owned the end-to-end V5→V6 API migration across 3 teams; engineered Portfolio Analytics APIs (Unrealized P&L) within a strict 1-week deadline, navigating complex compliance filters and preventing financial reporting errors by identifying a critical query logic bug."
+      ]
+    },
+    {
       role: "Software Data Engineer Intern",
       company: "Advanced Micro Devices (AMD)",
       duration: "Jan 2024 — Aug 2024",
