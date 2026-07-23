@@ -6,7 +6,8 @@ import { useRef, useState } from 'react'
 interface Project {
   title: string
   description: string
-  image: string
+  image?: string
+  video?: string
   demo?: string // Make demo optional
   code: string
 }
@@ -48,7 +49,18 @@ export default function ProjectList({ projects }: ProjectListProps) {
               className="flex-shrink-0 w-[300px] scroll-snap-align-start cursor-pointer transition-all duration-300 hover:shadow-lg"
               onClick={() => setActiveProject(activeProject === index ? null : index)}
             >
-              <img src={project.image} alt={project.title} className="w-full h-48 object-cover" />
+              {project.video ? (
+                <video
+                  src={project.video}
+                  className="w-full h-48 object-cover"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <img src={project.image} alt={project.title} className="w-full h-48 object-cover" />
+              )}
               <CardContent className="p-4">
                 <h3 className="text-xl font-semibold mb-2">{project.title}</h3>
                 <p className="text-sm text-amber-700">Click to view details</p>
@@ -65,11 +77,18 @@ export default function ProjectList({ projects }: ProjectListProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <div className={`mt-8 overflow-hidden transition-all duration-300 ease-in-out ${activeProject !== null ? 'max-h-96' : 'max-h-0'}`}>
+      <div className={`mt-8 overflow-hidden transition-all duration-300 ease-in-out ${activeProject !== null ? (projects[activeProject]?.video ? 'max-h-[700px]' : 'max-h-96') : 'max-h-0'}`}>
         {activeProject !== null && (
           <Card>
             <CardContent className="p-6">
               <h3 className="text-2xl font-semibold mb-4">{projects[activeProject].title}</h3>
+              {projects[activeProject].video && (
+                <video
+                  src={projects[activeProject].video}
+                  className="w-full rounded-lg mb-4"
+                  controls
+                />
+              )}
               <p className="text-lg mb-4">{projects[activeProject].description}</p>
               <div className="flex space-x-4">
                 {projects[activeProject].demo && (

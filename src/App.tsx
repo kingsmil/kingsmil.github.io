@@ -15,6 +15,10 @@ import dontPaisehImage from './images/dont_paiseh.png'
 import rizzumeImage from './images/rizz-ume.png'
 import bcrImage from './images/blockchain.png'
 import moePhoto from './images/moe_photo.jpeg'
+import okxLogo from './images/okx_logo.png'
+import amdLogo from './images/amd_logo.png'
+import cpfLogo from './images/cpf_logo.png'
+import promisphereLogo from './images/promisphere_icon.svg'
 
 type SectionRefs = {
   [key: string]: HTMLElement | null;
@@ -107,6 +111,13 @@ export default function Portfolio() {
       image: bcrImage,
       demo: "",
       code: "https://github.com/kang5647/hass_blockchain_project"
+    },
+    {
+      title: "CustomerClaw",
+      description: "A proactive, human-in-the-loop customer experience agent that finds problems before customers do. Cron jobs scan for stale orders and draft outreach automatically, while destructive actions like refunds pause for operator approval with a full audit trail.",
+      video: "/customerclaw-demo.mp4",
+      demo: "",
+      code: "https://github.com/kingsmil/proactive-hitl-cx-agent"
     }
   ]
 
@@ -115,6 +126,7 @@ export default function Portfolio() {
       role: "Software Engineer",
       company: "OKX (Core Trading Team)",
       duration: "June 2025 — Present",
+      logo: okxLogo,
       responsibilities: [
         "Delivered the UAE Retail Derivatives launch and CeDeFi Boost, achieving a 6x conversion rate increase (2% → 12%) for high-tier users and growing the trading user base by 20% through optimized migration flows.",
         "Implemented a self-initiated integration testing framework that reduced deployment testing time by 90% (20 min → 2 min); authored AI-assisted tests and rules, significantly increasing quality.",
@@ -126,6 +138,7 @@ export default function Portfolio() {
       role: "Software Data Engineer Intern",
       company: "Advanced Micro Devices (AMD)",
       duration: "Jan 2024 — Aug 2024",
+      logo: amdLogo,
       responsibilities: [
         "Constructed an ETL pipeline to optimize real-time streaming data processing and analysis; saved executives 90% of their data review time and enabled data-driven decision-making.",
         "Enhanced scalable data quality and management, directly improving data cleaning processes and model accuracy for predictive analytics; improved the speed of forecasting models up to 10x.",
@@ -136,6 +149,7 @@ export default function Portfolio() {
       role: "Software AI Engineer Intern",
       company: "Central Provident Fund (CPF)",
       duration: "May 2023 — Aug 2023",
+      logo: cpfLogo,
       responsibilities: [
         "Integrated a ChatGPT variant into a chatbot with open-source LLMs (LLaMA); enhanced user interaction and reduced manual document search time by 2.3x.",
         "Collaborated on multiple cross-functional artificial intelligence (AI) projects at CPF, leading to substantial man-hour savings by 83% (from 60 to 5 minutes per day).",
@@ -146,6 +160,7 @@ export default function Portfolio() {
       role: "FullStack Engineer Intern",
       company: "Promisphere Official (Backed by DBS)",
       duration: "May 2022 — Aug 2022",
+      logo: promisphereLogo,
       responsibilities: [
         "Built and established full cloud infrastructure and systems; established CI/CD Pipelines for efficient deployment in cloud infrastructure, reducing deployment time by 77%.",
         "Executed test-driven development on a Full Stack Web Application by conducting Unit testing, Integration Testing, and E2E Testing; authored over 50+ tests.",
@@ -201,7 +216,7 @@ export default function Portfolio() {
         <Section ref={el => sectionRefs.current.about = el} id="about" title="About Me">
           <div className="max-w-2xl mx-auto">
             <p className="text-lg leading-relaxed">
-              Hey there, I like to create things.
+              I've been building for around two years.
             </p>
             <p className="text-lg leading-relaxed mt-4">
               When I'm not buried in code, you'll find me at the bouldering gym, diving deep into Dungeons & Dragons, or just working out to keep my mind clear.

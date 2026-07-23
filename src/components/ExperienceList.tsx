@@ -8,6 +8,7 @@ interface Experience {
   company: string
   duration: string
   responsibilities: string[]
+  logo?: string
 }
 
 interface ExperienceListProps {
@@ -32,11 +33,22 @@ export default function ExperienceList({ experiences }: ExperienceListProps) {
       {experiences.map((exp, index) => (
         <Card key={index} className="mb-8 ml-8 hover:shadow-md transition-shadow duration-300">
           <CardContent className="p-6">
-            <h3 className="text-xl font-semibold mb-2">{exp.role}</h3>
-            <div className="text-sm flex flex-wrap text-amber-700 mb-2">
-            <span>{exp.company}</span>
-            <span className="mr-2 ml-2">•</span>
-            <span>{exp.duration}</span></div>
+            <div className="flex items-start gap-4">
+              {exp.logo && (
+                <img
+                  src={exp.logo}
+                  alt={`${exp.company} logo`}
+                  className="w-10 h-10 object-contain flex-shrink-0 mt-1"
+                />
+              )}
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-2">{exp.role}</h3>
+                <div className="text-sm flex flex-wrap text-amber-700 mb-2">
+                <span>{exp.company}</span>
+                <span className="mr-2 ml-2">•</span>
+                <span>{exp.duration}</span></div>
+              </div>
+            </div>
             <Button
               variant="ghost"
               className="text-left p-0 hover:bg-transparent"
