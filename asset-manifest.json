@@ -1,19 +1,21 @@
 {
   "files": {
-    "main.css": "/static/css/main.afac539d.css",
-    "main.js": "/static/js/main.1d8b6321.js",
+    "main.css": "/static/css/main.b7263d21.css",
+    "main.js": "/static/js/main.acfce548.js",
     "static/js/453.acca0757.chunk.js": "/static/js/453.acca0757.chunk.js",
     "static/media/blockchain.png": "/static/media/blockchain.bae9d427fcc64d862173.png",
     "static/media/dont_paiseh.png": "/static/media/dont_paiseh.bbdc4169fb57943ac4ee.png",
     "static/media/moe_photo.jpeg": "/static/media/moe_photo.a77d7cb79e155aec7672.jpeg",
     "static/media/rizz-ume.png": "/static/media/rizz-ume.f48abf199f22adc069fc.png",
+    "static/media/cpf_logo.png": "/static/media/cpf_logo.cb5ea2594555ad12200b.png",
+    "static/media/promisphere_icon.svg": "/static/media/promisphere_icon.59a9e1d2bbea28cf889a6f6d60a6c39f.svg",
     "index.html": "/index.html",
-    "main.afac539d.css.map": "/static/css/main.afac539d.css.map",
-    "main.1d8b6321.js.map": "/static/js/main.1d8b6321.js.map",
+    "main.b7263d21.css.map": "/static/css/main.b7263d21.css.map",
+    "main.acfce548.js.map": "/static/js/main.acfce548.js.map",
     "453.acca0757.chunk.js.map": "/static/js/453.acca0757.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.afac539d.css",
-    "static/js/main.1d8b6321.js"
+    "static/css/main.b7263d21.css",
+    "static/js/main.acfce548.js"
   ]
 }
