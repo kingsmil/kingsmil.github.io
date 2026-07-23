@@ -92,6 +92,13 @@ export default function Portfolio() {
   }
   const projects = [
     {
+      title: "CustomerClaw",
+      description: "A proactive, human-in-the-loop customer experience agent that finds problems before customers do. Cron jobs scan for stale orders and draft outreach automatically, while destructive actions like refunds pause for operator approval with a full audit trail.",
+      video: "/customerclaw-demo.mp4",
+      demo: "",
+      code: "https://github.com/kingsmil/proactive-hitl-cx-agent"
+    },
+    {
       title: "Don't Paiseh",
       description: "An innovative application that presents users with social questions and answers. Deployed a full end-to-end mobile-first WebApp in 24 hours with a team of four, led frontend development.",
       image: dontPaisehImage,
@@ -111,13 +118,6 @@ export default function Portfolio() {
       image: bcrImage,
       demo: "",
       code: "https://github.com/kang5647/hass_blockchain_project"
-    },
-    {
-      title: "CustomerClaw",
-      description: "A proactive, human-in-the-loop customer experience agent that finds problems before customers do. Cron jobs scan for stale orders and draft outreach automatically, while destructive actions like refunds pause for operator approval with a full audit trail.",
-      video: "/customerclaw-demo.mp4",
-      demo: "",
-      code: "https://github.com/kingsmil/proactive-hitl-cx-agent"
     }
   ]
 
