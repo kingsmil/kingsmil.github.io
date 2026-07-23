@@ -34,6 +34,7 @@ export default function Portfolio() {
     experience: null,
     education: null,
     projects: null,
+    testimonial: null,
     contact: null
   })
 
@@ -127,6 +128,7 @@ export default function Portfolio() {
       company: "OKX (Core Trading Team)",
       duration: "June 2025 — Present",
       logo: okxLogo,
+      highlight: "6x conversion rate increase (2% → 12%) on the UAE Retail Derivatives launch",
       responsibilities: [
         "Delivered the UAE Retail Derivatives launch and CeDeFi Boost, achieving a 6x conversion rate increase (2% → 12%) for high-tier users and growing the trading user base by 20% through optimized migration flows.",
         "Implemented a self-initiated integration testing framework that reduced deployment testing time by 90% (20 min → 2 min); authored AI-assisted tests and rules, significantly increasing quality.",
@@ -139,6 +141,7 @@ export default function Portfolio() {
       company: "Advanced Micro Devices (AMD)",
       duration: "Jan 2024 — Aug 2024",
       logo: amdLogo,
+      highlight: "Saved executives 90% of data review time with a new ETL pipeline",
       responsibilities: [
         "Constructed an ETL pipeline to optimize real-time streaming data processing and analysis; saved executives 90% of their data review time and enabled data-driven decision-making.",
         "Enhanced scalable data quality and management, directly improving data cleaning processes and model accuracy for predictive analytics; improved the speed of forecasting models up to 10x.",
@@ -150,6 +153,7 @@ export default function Portfolio() {
       company: "Central Provident Fund (CPF)",
       duration: "May 2023 — Aug 2023",
       logo: cpfLogo,
+      highlight: "Cut manual document search time by 2.3x with an LLM-powered chatbot",
       responsibilities: [
         "Integrated a ChatGPT variant into a chatbot with open-source LLMs (LLaMA); enhanced user interaction and reduced manual document search time by 2.3x.",
         "Collaborated on multiple cross-functional artificial intelligence (AI) projects at CPF, leading to substantial man-hour savings by 83% (from 60 to 5 minutes per day).",
@@ -161,6 +165,7 @@ export default function Portfolio() {
       company: "Promisphere Official (Backed by DBS)",
       duration: "May 2022 — Aug 2022",
       logo: promisphereLogo,
+      highlight: "Reduced deployment time by 77% with a new CI/CD pipeline",
       responsibilities: [
         "Built and established full cloud infrastructure and systems; established CI/CD Pipelines for efficient deployment in cloud infrastructure, reducing deployment time by 77%.",
         "Executed test-driven development on a Full Stack Web Application by conducting Unit testing, Integration Testing, and E2E Testing; authored over 50+ tests.",
@@ -216,7 +221,7 @@ export default function Portfolio() {
         <Section ref={el => sectionRefs.current.about = el} id="about" title="About Me">
           <div className="max-w-2xl mx-auto">
             <p className="text-lg leading-relaxed">
-              I've been building for around two years.
+              I've been building software for about two years now, and I still get a kick out of shipping something that actually works.
             </p>
             <p className="text-lg leading-relaxed mt-4">
               When I'm not buried in code, you'll find me at the bouldering gym, diving deep into Dungeons & Dragons, or just working out to keep my mind clear.
@@ -244,6 +249,18 @@ export default function Portfolio() {
 
         <Section ref={el => sectionRefs.current.projects = el} id="projects" title="Projects">
           <ProjectList projects={projects} />
+        </Section>
+
+        <Section ref={el => sectionRefs.current.testimonial = el} id="testimonial" title="Testimonial">
+          <Card className="max-w-2xl mx-auto hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <p className="text-lg leading-relaxed italic mb-4">
+                "His display of strong teamwork and collaboration made him an invaluable asset to the team, as he proactively supported the team members and readily helped whenever needed. Based on his outstanding performance, I am confident that Moe will thrive in any future team environment, achieve great success, and make a positive impact on any organization he joins."
+              </p>
+              <p className="text-sm font-semibold text-amber-900">Senior Deputy Director</p>
+              <p className="text-sm text-amber-700">Central Provident Fund Board</p>
+            </CardContent>
+          </Card>
         </Section>
 
         <Section ref={el => sectionRefs.current.contact = el} id="contact" title="Get in Touch">

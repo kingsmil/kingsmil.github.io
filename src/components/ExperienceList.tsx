@@ -9,6 +9,7 @@ interface Experience {
   duration: string
   responsibilities: string[]
   logo?: string
+  highlight?: string
 }
 
 interface ExperienceListProps {
@@ -47,6 +48,9 @@ export default function ExperienceList({ experiences }: ExperienceListProps) {
                 <span>{exp.company}</span>
                 <span className="mr-2 ml-2">•</span>
                 <span>{exp.duration}</span></div>
+                {exp.highlight && (
+                  <p className="text-sm font-semibold text-amber-900 mb-2">{exp.highlight}</p>
+                )}
               </div>
             </div>
             <Button
