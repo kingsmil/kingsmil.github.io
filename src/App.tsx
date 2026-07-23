@@ -234,7 +234,7 @@ export default function Portfolio() {
         <Section ref={el => sectionRefs.current.education = el} id="education" title="Education">
           <Card className="hover:shadow-md transition-shadow duration-300">
             <CardContent className="p-6">
-              <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science</h3>
+              <h3 className="text-xl font-semibold mb-2">Bachelor of Science in Computer Science, Highest Distinction</h3>
               <p className="text-sm text-amber-700 mb-2">Nanyang Technological University</p>
               <p className="text-sm text-amber-700 mb-2">Exchange Semester at Northeastern University for Computer Science</p>
               <p className="text-sm">Relevant coursework: Data Structures, Algorithms, Web Development, Database Systems</p>
