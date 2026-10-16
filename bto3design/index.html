@@ -220,6 +220,22 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
   .lib-grid{grid-template-columns:1fr 1fr 1fr}
   .brand span,footer .only2d{display:none!important}
 }
+/* ---------- Layout picker (start screen) ---------- */
+#picker{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto}
+#picker[hidden]{display:none}
+.pick-box{width:min(760px,100%)}
+#picker h1{font-size:26px;margin:0 0 4px;letter-spacing:.2px}
+.pick-sub{color:var(--muted);margin:0 0 20px;font-size:14px}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.pick-card{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);
+  cursor:pointer;overflow:hidden;transition:border-color .15s,transform .15s,box-shadow .15s}
+.pick-card:hover,.pick-card:focus-visible{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 26px rgba(40,30,20,.12);outline:none}
+.pick-card svg{display:block;width:100%;height:auto;background:var(--paper);padding:14px;box-sizing:border-box}
+.pick-meta{padding:12px 14px 14px;border-top:1px solid var(--line)}
+.pick-meta b{display:block;font-size:16px}
+.pick-meta span{color:var(--muted);font-size:13px}
+.pick-meta .tag{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600}
+.pick-note{color:var(--muted);font-size:12px;margin-top:18px}
 /* ---------- Phones: one scrollable toolbar row, wrapping selection bar ---------- */
 @media (max-width:640px){
   header{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 8px}
@@ -305,6 +321,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
     <button class="btn" id="fullscreen" title="全屏 (Shift+F)" style="border:1px solid var(--line);background:#fff">⛶ 全屏</button>
     <details class="menu"><summary class="btn" data-en="File ▾">文件 ▾</summary>
       <div class="menu-pop">
+        <button class="btn" id="pickLayout" data-en="Choose BTO layout">选择户型</button>
         <button class="btn" id="exportPng" data-en="Export image">导出图片</button>
         <button class="btn" id="exportJson" data-en="Export plan JSON">导出方案 JSON</button>
         <button class="btn" id="importJson" data-en="Import plan">导入方案</button>
@@ -360,6 +377,14 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
   </footer>
 </div>
 <div id="toast"></div>
+<div id="picker" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="pick-box">
+    <h1 id="pickTitle"></h1>
+    <p class="pick-sub" id="pickSub"></p>
+    <div class="pick-grid" id="pickGrid"></div>
+    <p class="pick-note" id="pickNote"></p>
+  </div>
+</div>
 
 <script>
 /* ======================= 多语言（中文 / English，默认中文） ======================= */
@@ -1319,7 +1344,7 @@ svg.addEventListener('contextmenu', e => { if (ui.tool==='measure'){ e.preventDe
 
 /* ======================= 键盘 ======================= */
 document.addEventListener('keydown', e => {
-  if (e.target.matches('input,select,textarea')) return;
+  if (e.target.matches('input,select,textarea') || !$('#picker').hidden) return;
   if (window.View3D?.walking()) return;
   const mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
   if (mod && k === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
@@ -1532,6 +1557,35 @@ applyStaticLang(); syncFullscreen();
 buildDefs(); buildLib(); renderOpenings(); renderDims();
 $('#tip').textContent = TIPS()['2d'];
 fitView(); renderAll();
+
+/* ======================= Layout picker (start screen) ======================= */
+// Only one layout for now; each entry would carry its own WALLS / ROOMS / furniture when more are added.
+const PROJECTS = [
+  {id:'sample-4rm', name:'Tengah · 4-Room', town:'Tengah', type:'4-Room'},
+];
+function planThumb(){
+  const rect = ([x0,y0,x1,y1], fill) => `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="${fill}"/>`;
+  return `<svg viewBox="-300 -300 11600 9800" aria-hidden="true">
+    ${ROOMS.map(r => `<polygon points="${r.poly.map(p => p.join(',')).join(' ')}" fill="${MATS[r.mat].sw}"/>`).join('')}
+    ${WALLS.map(w => rect(w, w[4] === 'b' ? '#26241f' : '#8f897d')).join('')}
+    ${WINS.map(w => rect(w, '#9fc0d8')).join('')}
+  </svg>`;
+}
+function openPicker(){
+  const tot = ROOMS.reduce((a, r) => a + area(r.poly), 0), saved = (() => { try { return !!localStorage.getItem(STORE); } catch(e) { return false; } })();
+  $('#pickTitle').textContent = tr('选择你的组屋户型', 'Choose your BTO layout');
+  $('#pickSub').textContent = tr('选择一个户型开始摆放家具。', 'Pick a flat layout to start placing furniture.');
+  $('#pickNote').textContent = tr('* 示例户型，尺寸为近似值，并非 HDB 官方图纸。', '* Sample layout with approximate dimensions — not an official HDB floor plan.');
+  $('#pickGrid').innerHTML = PROJECTS.map(p => `<button class="pick-card" data-proj="${p.id}">${planThumb()}
+    <div class="pick-meta"><b>${esc(p.name)}</b><span>${ROOMS.length} ${tr('个空间', 'spaces')} · ≈ ${fmt(tot)} m²</span><br>
+    <span class="tag">${saved ? tr('继续上次的布置 →', 'Continue your layout →') : tr('开始布置 →', 'Start designing →')}</span></div></button>`).join('');
+  $('#pickGrid').querySelectorAll('[data-proj]').forEach(b => b.onclick = closePicker);
+  $('#picker').hidden = false;
+  $('#pickGrid .pick-card')?.focus();
+}
+function closePicker(){ $('#picker').hidden = true; fitView(); }
+$('#pickLayout').onclick = e => { e.target.closest('details').open = false; openPicker(); };
+openPicker();
 </script>
 <script type="module">
 /* ============================================================
