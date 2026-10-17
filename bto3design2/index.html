@@ -236,6 +236,19 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
 .pick-meta span{color:var(--muted);font-size:13px}
 .pick-meta .tag{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600}
 .pick-note{color:var(--muted);font-size:12px;margin-top:18px}
+/* ---------- Onboarding tour ---------- */
+#tour{position:fixed;left:50%;top:112px;transform:translateX(-50%);z-index:40;width:min(380px,calc(100% - 24px));padding:14px 16px 12px;
+  background:var(--panel);border:1px solid var(--accent);border-radius:14px;box-shadow:0 14px 40px rgba(40,30,20,.22);animation:fadeIn .25s ease}
+#tour[hidden]{display:none}
+#tour{pointer-events:none} #tour .btn{pointer-events:auto}   /* never blocks the library / plan underneath */
+#tour b{display:block;font-size:16px;margin:2px 0 4px}
+#tour p{margin:0 0 10px;color:var(--ink);font-size:13px;line-height:1.5}
+.tour-step{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent)}
+.tour-actions{display:flex;justify-content:flex-end;gap:6px}
+.tour-actions .btn{border:1px solid var(--line)}
+.tour-hl{position:relative;z-index:30;animation:tourPulse 1.4s ease-in-out infinite;border-radius:10px}
+@keyframes tourPulse{0%,100%{box-shadow:0 0 0 2px var(--accent),0 0 0 6px rgba(181,101,58,.25)}50%{box-shadow:0 0 0 2px var(--accent),0 0 0 12px rgba(181,101,58,0)}}
+.btn.demo{border:1px dashed var(--accent)!important;color:var(--accent);background:#fff}
 /* ---------- Phones: one scrollable toolbar row, wrapping selection bar ---------- */
 @media (max-width:640px){
   header{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 8px}
@@ -247,6 +260,8 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
   #fab{flex-wrap:wrap;justify-content:center;width:calc(100% - 16px);bottom:8px}
   #fab .name{max-width:none}
   #fab .sep{display:none}
+  #tour{top:auto;bottom:96px}
+  #tour[data-step="2"],#tour[data-step="3"]{top:66px;bottom:auto}
 }
 </style>
 <script type="importmap">
@@ -319,6 +334,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip" data-lang="en" title="English">EN</button>
     </div>
     <button class="btn" id="fullscreen" title="全屏 (Shift+F)" style="border:1px solid var(--line);background:#fff">⛶ 全屏</button>
+    <button class="btn demo" id="demoReset" title="Demo only: clear saved layouts, restart the tutorial and go back to the layout list" data-en="↺ Demo reset">↺ 演示重置</button>
     <details class="menu"><summary class="btn" data-en="File ▾">文件 ▾</summary>
       <div class="menu-pop">
         <button class="btn" id="pickLayout" data-en="Choose BTO layout">选择户型</button>
@@ -377,6 +393,12 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
   </footer>
 </div>
 <div id="toast"></div>
+<div id="tour" hidden role="status" aria-live="polite">
+  <div class="tour-step" id="tourStep"></div>
+  <b id="tourTitle"></b>
+  <p id="tourText"></p>
+  <div class="tour-actions"><button class="btn" id="tourSkip"></button><button class="btn primary" id="tourNext" hidden></button></div>
+</div>
 <div id="picker" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
   <div class="pick-box">
     <h1 id="pickTitle"></h1>
@@ -1246,6 +1268,7 @@ function addItem(it, x, y){
   ui.sel = {kind:'furn', id:f.id};
   mutate(() => type==='rug' ? state.furniture.unshift(f) : state.furniture.push(f));
   toast(tr(`已添加「${name}」${w}×${d}`, `Added "${nm(name)}" ${w}×${d}`));
+  tourEvent('add');
 }
 function toggleWall(id){
   const w = WALLS[+id.slice(1)];
@@ -1588,6 +1611,7 @@ async function setView(m){
   else { document.body.classList.remove('m3d'); await window.View3D.exit(); applyView(); }
   $('#tip').textContent = TIPS()[m];
   switching = false; document.body.classList.remove('busy');
+  tourEvent('view:' + m);
 }
 document.querySelectorAll('.menu-pop .btn').forEach(b => b.addEventListener('click', () => b.closest('details').open = false));
 document.querySelectorAll('#viewSeg .btn').forEach(b => b.onclick = () => setView(b.dataset.view));
@@ -1700,7 +1724,56 @@ function openPicker(){
 }
 function closePicker(){ $('#picker').hidden = true; fitView(); }
 $('#pickLayout').onclick = e => { e.target.closest('details').open = false; openPicker(); };
-if (!new URLSearchParams(location.search).has('layout')) openPicker(); else $('#picker').hidden = true;
+
+/* ======================= Onboarding tour ======================= */
+// Two steps: add a piece of furniture, then switch to 3D. Completion is remembered per browser.
+const TOUR_KEY = 'bto3design-tour-done';
+const tour = {step:0};   // 0 = not running, 1 = add furniture, 2 = switch to 3D, 3 = done
+const TOUR_STEPS = {
+  1: {title:() => tr('添加一件家具', 'Add a piece of furniture'),
+      text:() => narrow() ? tr('打开左上角「家具库」，点一下任意家具即可放进户型。', 'Open the Library (top left) and tap any item to place it in the flat.')
+                          : tr('在左侧家具库点一下任意家具，或把它拖到平面图上。', 'Click any item in the Library on the left, or drag it onto the plan.'),
+      target:() => narrow() ? $('#tgLib') : $('aside.lib')},
+  2: {title:() => tr('切换到 3D', 'Switch to 3D'),
+      text:() => tr('点顶部的「3D 场景」，立体查看你的布置。', 'Tap "3D Scene" at the top to see your layout in 3D.'),
+      target:() => $('#viewSeg [data-view="3d"]')},
+  3: {title:() => tr('完成！', "You're all set!"),
+      text:() => tr('点任意家具可查看尺寸（宽 × 深 × 高），拖动即可移动。', 'Click any furniture to see its size (W × D × H), and drag it to move it around.'),
+      target:() => null},
+};
+function tourDone(){ try { return localStorage.getItem(TOUR_KEY) === '1'; } catch(e) { return false; } }
+function renderTour(){
+  document.querySelectorAll('.tour-hl').forEach(el => el.classList.remove('tour-hl'));
+  const st = TOUR_STEPS[tour.step];
+  if (!st){ $('#tour').hidden = true; return; }
+  $('#tourStep').textContent = tour.step < 3 ? tr(`第 ${tour.step} 步 / 共 2 步`, `Step ${tour.step} of 2`) : tr('新手引导', 'Tutorial');
+  $('#tourTitle').textContent = st.title(); $('#tourText').textContent = st.text();
+  $('#tourSkip').textContent = tr('跳过引导', 'Skip tutorial'); $('#tourSkip').hidden = tour.step === 3;
+  $('#tourNext').textContent = tr('好的', 'Got it'); $('#tourNext').hidden = tour.step !== 3;
+  const t = st.target(); if (t){ t.classList.add('tour-hl'); t.scrollIntoView({block:'nearest', inline:'nearest'}); }
+  $('#tour').dataset.step = tour.step;
+  $('#tour').hidden = false;
+}
+function endTour(){ tour.step = 0; try { localStorage.setItem(TOUR_KEY, '1'); } catch(e) {} renderTour(); }
+function startTour(){ if (tourDone()) return; tour.step = viewMode === '3d' ? 2 : 1; renderTour(); }
+function tourEvent(ev){
+  if (tour.step === 1 && ev === 'add'){ tour.step = viewMode === '3d' ? 3 : 2; setTimeout(() => { closeDrawers(); renderTour(); }, 600); }
+  else if (tour.step === 2 && ev === 'view:3d'){ tour.step = 3; renderTour(); }
+}
+$('#tourSkip').onclick = endTour;
+$('#tourNext').onclick = endTour;
+// the Library button only exists on narrow screens, so re-target when the window is resized
+addEventListener('resize', () => tour.step && renderTour());
+
+// Demo only: wipe saved layouts + tutorial progress and return to the layout list
+$('#demoReset').onclick = () => {
+  try { Object.keys(localStorage).filter(k => k.startsWith('bto3design-v1') || k === TOUR_KEY).forEach(k => localStorage.removeItem(k)); } catch(e) {}
+  location.href = location.pathname;
+};
+
+const _closePicker = closePicker;
+closePicker = () => { _closePicker(); startTour(); };
+if (!new URLSearchParams(location.search).has('layout')) openPicker(); else { $('#picker').hidden = true; startTour(); }
 </script>
 <script type="module">
 /* ============================================================
