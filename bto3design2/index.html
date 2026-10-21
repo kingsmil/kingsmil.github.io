@@ -1949,11 +1949,11 @@ async function setView(m){
   if (!window.View3D) return toast(tr('3D 引擎仍在加载或加载失败（需要联网加载 three.js）', '3D engine is still loading or failed to load (three.js needs a network connection)'));
   switching = true; document.body.classList.add('busy');
   viewMode = m;
+  tourEvent('view:' + m);                          // advance the tutorial on the click, not after the transition
   if (m === '3d'){ if (ui.tool !== 'select') setTool('select'); ui.mA = null; document.body.classList.add('m3d'); await window.View3D.enter(); }
   else { document.body.classList.remove('m3d'); await window.View3D.exit(); applyView(); }
   $('#tip').textContent = TIPS()[m];
   switching = false; document.body.classList.remove('busy');
-  tourEvent('view:' + m);
 }
 document.querySelectorAll('.menu-pop .btn').forEach(b => b.addEventListener('click', () => b.closest('details').open = false));
 document.querySelectorAll('#viewSeg .btn').forEach(b => b.onclick = () => setView(b.dataset.view));
@@ -3316,6 +3316,7 @@ async function exit(){
 
 /* ======================= 选择 / 拾取 ======================= */
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+ray.params.Line.threshold = .01;   // walk-mode wall outlines are LineSegments; the default 1 m threshold made them swallow nearby clicks
 function pick(e){
   if (!e) ptr.set(0, 0);
   else { const r = renderer.domElement.getBoundingClientRect(); ptr.set((e.clientX - r.left)/r.width*2 - 1, -(e.clientY - r.top)/r.height*2 + 1); }
@@ -3443,13 +3444,17 @@ function jumpTo(x, z){
   walkTarget = null; camera.position.x = x; camera.position.z = z; return true;
 }
 function stepTarget(dt){
-  if (!walkTarget) return;
-  const p = camera.position, dx = walkTarget.x - p.x, dz = walkTarget.z - p.z, L = Math.hypot(dx, dz);
-  if (L < .08){ walkTarget = null; return; }
-  const st = Math.min(L, 1.6*dt), mx = dx/L*st, mz = dz/L*st;
-  const okx = !blocked(p.x + mx, p.z), okz = !blocked(p.x, p.z + mz);
-  if (okx) p.x += mx; if (okz) p.z += mz;
-  if (!okx && !okz) walkTarget = null;                       // ran into a wall: stop
+  // dt is real elapsed time (not the per-frame clamp) so the glide keeps its speed on slow devices;
+  // it advances in ≤ 10 cm sub-steps so a long frame can't tunnel through a wall
+  let rem = 1.6*Math.min(dt, .5);
+  while (walkTarget && rem > 0){
+    const p = camera.position, dx = walkTarget.x - p.x, dz = walkTarget.z - p.z, L = Math.hypot(dx, dz);
+    if (L < .08){ walkTarget = null; return; }
+    const st = Math.min(L, rem, .1), mx = dx/L*st, mz = dz/L*st; rem -= st;
+    const okx = !blocked(p.x + mx, p.z), okz = !blocked(p.x, p.z + mz);
+    if (okx) p.x += mx; if (okz) p.z += mz;
+    if (!okx && !okz) walkTarget = null;                     // ran into a wall: stop
+  }
 }
 // Minimap (spec S14): plan outline + "you are here" marker with a view cone
 let mmBuilt = false;
@@ -3476,8 +3481,8 @@ function updateMinimap(){
   if (+g.dataset.x === x && +g.dataset.y === y && +g.dataset.angle === a) return;
   g.dataset.x = x; g.dataset.y = y; g.dataset.angle = a; g.setAttribute('transform', `translate(${x} ${y}) rotate(${a})`);
 }
-function stepWalk(dt){
-  stepTarget(dt);
+function stepWalk(dt, raw = dt){
+  stepTarget(raw);
   if (!walkCtl.isLocked && !touchWalk) return;
   const sp = (keys.ShiftLeft || keys.ShiftRight ? 2.6 : 1.4) * dt, fwd = new THREE.Vector3();
   camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
@@ -3541,11 +3546,11 @@ const clock = new THREE.Clock();
 function startLoop(){ if (!raf){ clock.getDelta(); raf = requestAnimationFrame(loop); } }
 function loop(){
   raf = requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), .05), now = performance.now();
+  const raw = clock.getDelta(), dt = Math.min(raw, .05), now = performance.now();
   if (anim){ const t = clamp01((now - anim.t0)/anim.dur); anim.fn(t); if (t >= 1){ const r = anim.res; anim = null; r(); } }
   else if (fly){ const t = clamp01((now - fly.t0)/fly.dur); camTween(fly.A, fly.B, ease(t)); if (t >= 1) fly = null; }
   else if (opt.mode === 'orbit') orbit.update();
-  else stepWalk(dt);
+  else stepWalk(dt, raw);
   doors.forEach(d => { const tg = d.open ? d.a1 : d.a0; d.cur += (tg - d.cur) * Math.min(1, dt*6); d.pivot.rotation.y = d.cur; });
   updateSel(); window.renderCompass?.(); updateMinimap();
   const below = camera.position.y < H;                                  // ceiling lamp discs only make sense from inside the room
@@ -3580,7 +3585,10 @@ function relang(){ syncWalkTexts(); if (inited) buildLabels(); }
 window.View3D = {enter, exit, relang, sync:() => sync(), shot, groundAt, flyToRoom:id => active && !anim && flyToRoom(id), walking:() => active && opt.mode === 'walk', mode:() => opt.mode,
   startWalk:() => { if (opt.mode === 'walk') startTouchWalk(); },
   walkPos:() => ({x:camera.position.x*1000 + OX, y:camera.position.z*1000 + OY}),
+  screenOf:(x, y) => { const v = new THREE.Vector3(wx(x), 0, wz(y)).project(camera), r = renderer.domElement.getBoundingClientRect();
+    return {x:r.left + (v.x + 1)/2*r.width, y:r.top + (1 - v.y)/2*r.height}; },
   turnBy:deg => { eul.setFromQuaternion(camera.quaternion); eul.y -= deg*RAD; camera.quaternion.setFromEuler(eul); },
+  pitchBy:deg => lookBy(0, deg*RAD/.005),
   photo:on => { photoOn = on; if (selHelper) selHelper.visible = !on; if (selTag) selTag.visible = !on; }, capture,
   selOutlineVisible:() => !!selHelper && selHelper.visible,
   focus:focusItem, canDrag, fixtureCount:() => archFloor.children.filter(o => o.userData.fixture).length, itemBox:id => { const g = furnG.children.find(g => g.userData.fid === id); g.updateWorldMatrix(true, true); const b = new THREE.Box3().setFromObject(g); return {minY:b.min.y, maxY:b.max.y}; }, relight:() => inited && applyLight(),
