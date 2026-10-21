@@ -2246,7 +2246,7 @@ const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
 const opt = {cut:2.8, furn:true, labels:true, night:false, mode:'orbit'};
 
-let inited = false, active = false, raf = 0, anim = null, fly = null, sigNorth = null;
+let inited = false, active = false, raf = 0, anim = null, fly = null, sigNorth = null, lowGfx = false, gpuName = '';
 let renderer, labelRenderer, scene, camera, orbit, walkCtl, hemi, sun, ground, glassMat, wallMat, capMat, frameMat;
 let archFloor, archUp, furnG, labelG, lampG, colliders = [], selKey = null, selHelper = null, selTag = null;
 let sigArch = '', sigFurn = '', sigLabels = '', grow = 1, furnGrow = 1;
@@ -2255,10 +2255,17 @@ const doors = [], keys = {};
 /* ======================= 初始化 ======================= */
 function init(){
   if (inited) return; inited = true;
-  renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // Devices without a GPU render WebGL in software (SwiftShader / llvmpipe): use lighter settings there
+  // (no MSAA, 1× pixels, smaller shadow map), otherwise a frame takes seconds. Also forced with ?gfx=low.
+  { const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl'),
+      dbg = gl?.getExtension('WEBGL_debug_renderer_info');
+    gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    gl?.getExtension('WEBGL_lose_context')?.loseContext(); }
+  lowGfx = /swiftshader|llvmpipe|softpipe|software/i.test(gpuName) || new URLSearchParams(location.search).get('gfx') === 'low';
+  renderer = new THREE.WebGLRenderer({antialias:!lowGfx, preserveDrawingBuffer:!lowGfx});
+  renderer.setPixelRatio(lowGfx ? 1 : Math.min(devicePixelRatio, 2));
   renderer.setSize(SW(), SH());
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = lowGfx ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   host.prepend(renderer.domElement);
   labelRenderer = new CSS2DRenderer();
@@ -2276,7 +2283,7 @@ function init(){
 
   hemi = new THREE.HemisphereLight(0xfff8ee, 0xb9a88f, 1.1);
   sun = new THREE.DirectionalLight(0xfff1dd, 2.6);
-  sun.castShadow = true; sun.shadow.mapSize.setScalar(COARSE ? 2048 : 4096);   // 平板 GPU 用小一点的阴影贴图
+  sun.castShadow = true; sun.shadow.mapSize.setScalar(lowGfx ? 1024 : COARSE ? 2048 : 4096);   // 平板 GPU 用小一点的阴影贴图
   Object.assign(sun.shadow.camera, {left:-11, right:11, top:11, bottom:-11, near:1, far:60});
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
   ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({color:0xf2eee7, roughness:1}));
@@ -3446,7 +3453,7 @@ function jumpTo(x, z){
 function stepTarget(dt){
   // dt is real elapsed time (not the per-frame clamp) so the glide keeps its speed on slow devices;
   // it advances in ≤ 10 cm sub-steps so a long frame can't tunnel through a wall
-  let rem = 1.6*Math.min(dt, .5);
+  let rem = 1.6*Math.min(dt, 1);
   while (walkTarget && rem > 0){
     const p = camera.position, dx = walkTarget.x - p.x, dz = walkTarget.z - p.z, L = Math.hypot(dx, dz);
     if (L < .08){ walkTarget = null; return; }
@@ -3578,7 +3585,8 @@ function capture(frameEl){
   a.download = `${slug(LAYOUT.name)}-photo-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.png`;
   a.href = url; a.click();
 }
-function shot(){ const a = document.createElement('a'); a.download = tr('户型装修方案', 'floor-plan-design') + '-3D.png'; a.href = renderer.domElement.toDataURL('image/png'); a.click(); }
+function shot(){ renderer.render(scene, camera);   // read right after rendering: low-gfx mode doesn't preserve the drawing buffer
+  const a = document.createElement('a'); a.download = tr('户型装修方案', 'floor-plan-design') + '-3D.png'; a.href = renderer.domElement.toDataURL('image/png'); a.click(); }
 
 function relang(){ syncWalkTexts(); if (inited) buildLabels(); }
 
@@ -3591,6 +3599,7 @@ window.View3D = {enter, exit, relang, sync:() => sync(), shot, groundAt, flyToRo
   pitchBy:deg => lookBy(0, deg*RAD/.005),
   photo:on => { photoOn = on; if (selHelper) selHelper.visible = !on; if (selTag) selTag.visible = !on; }, capture,
   selOutlineVisible:() => !!selHelper && selHelper.visible,
+  gfx:() => ({low:lowGfx, gpu:gpuName}),
   focus:focusItem, canDrag, fixtureCount:() => archFloor.children.filter(o => o.userData.fixture).length, itemBox:id => { const g = furnG.children.find(g => g.userData.fid === id); g.updateWorldMatrix(true, true); const b = new THREE.Box3().setFromObject(g); return {minY:b.min.y, maxY:b.max.y}; }, relight:() => inited && applyLight(),
   fwd:() => { const v = new THREE.Vector3(); camera.getWorldDirection(v); v.y = 0; if (v.lengthSq() < 1e-6){ v.set(0, 0, -1).applyQuaternion(camera.quaternion); v.y = 0; } v.normalize(); return {x:v.x, y:v.z}; },
   orbitBy:deg => { const a = deg*RAD, off = camera.position.clone().sub(orbit.target), x = off.x*Math.cos(a) - off.z*Math.sin(a), z = off.x*Math.sin(a) + off.z*Math.cos(a);
