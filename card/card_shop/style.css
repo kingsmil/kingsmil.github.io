@@ -1,0 +1,512 @@
+/* Keep the shop in the same navy, teal and gold palette as the claim teaser. */
+:root {
+ color-scheme: dark;
+ --bg: #081529;
+ --panel: #132741;
+ --text: #f4f7ff;
+ --muted: #a7b9d0;
+ --accent: #69d6e0;
+ --accentText: #081529;
+ --gold: #f0c24a;
+ --cyan: #5fd3e8;
+ --deep: #16224f;
+ --goldInk: var(--gold);
+ --cyanInk: var(--cyan);
+ --brand: #81dce8;
+ --brand2: #176f82;
+ --sweep: linear-gradient(135deg, #23508c, var(--brand2));
+ --inkSweep: linear-gradient(100deg, var(--goldInk), var(--cyanInk));
+
+ --surface: color-mix(in srgb, var(--panel) 88%, var(--text) 4%);
+ --raised: color-mix(in srgb, var(--panel) 70%, var(--bg) 30%);
+ --line: color-mix(in srgb, var(--muted) 26%, transparent);
+ --shadow: 0 1px 2px rgb(0 0 0 / .12), 0 8px 24px -12px rgb(0 0 0 / .35);
+ --radius: 16px;
+ /* The mat a card sits on. A marketplace shows the whole card, slab and all,
+    so a tile letterboxes it against this rather than cropping it to fill. */
+ --mat: color-mix(in srgb, color-mix(in srgb, var(--bg) 72%, #000 28%) 88%, var(--deep) 12%);
+ /* The two colours here are not the buyer's theme and should not follow it:
+    they are the grading label's own red and the gold a ten is shown in, and
+    a grade chip that changed colour with the client would stop being one. */
+ --slab: #d23b3b;
+ --gem: var(--gold);
+ --bar: 62px;
+ --rise: cubic-bezier(.22, .8, .3, 1);
+}
+* { box-sizing: border-box; }
+/* Buttons and links below are given a display of their own, which would
+   otherwise beat the hidden attribute and leave dead controls on the screen. */
+[hidden] { display: none !important; }
+body {
+ margin: 0;
+ padding: 0 16px calc(var(--bar) + 24px + env(safe-area-inset-bottom)) 16px;
+ background: var(--bg);
+ color: var(--text);
+ font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+ -webkit-text-size-adjust: 100%;
+ -webkit-tap-highlight-color: transparent;
+}
+h1 { font-size: 23px; letter-spacing: -.02em; margin: 24px 0 8px; }
+h2 { font-size: 19px; letter-spacing: -.01em; margin: 18px 0 4px; }
+p { margin: 4px 0; }
+button { font: inherit; cursor: pointer; }
+
+/* The way in. It is the one screen with nothing of the shop's own on it, so
+   it is the mark's: the nebula behind it is the logo's, blurred out of the
+   image rather than copied from it, so the two do not have to agree pixel for
+   pixel to look like one thing. */
+.gate { position: relative; text-align: center; padding: 60px 8px 72px; color: var(--muted); }
+.gate::before {
+ content: ''; position: absolute; left: 50%; top: 24px; translate: -50% 0;
+ width: 310px; height: 310px; max-width: 86vw; border-radius: 50%;
+ pointer-events: none; filter: blur(8px);
+ background: radial-gradient(circle,
+  color-mix(in srgb, var(--cyan) 24%, transparent) 0%,
+  color-mix(in srgb, var(--deep) 34%, transparent) 44%,
+  transparent 70%);
+}
+.gate .mark {
+ position: relative; display: block; width: 148px; height: 148px;
+ margin: 0 auto 16px; border-radius: 50%;
+ box-shadow: 0 10px 34px -10px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.gate h1 {
+ font-size: 28px; color: transparent;
+ background: var(--inkSweep); -webkit-background-clip: text; background-clip: text;
+}
+
+/* The tab bar sits at the bottom, where a thumb already is. It is fixed
+   rather than sticky so it stays put while a long grid scrolls under it, and
+   the body reserves --bar of room so nothing ends up behind it. */
+.tabs {
+ position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+ display: flex; gap: 2px;
+ padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+ background: color-mix(in srgb, var(--bg) 86%, transparent);
+ backdrop-filter: saturate(1.7) blur(18px);
+ -webkit-backdrop-filter: saturate(1.7) blur(18px);
+ border-top: 1px solid var(--line);
+}
+.tabs button {
+ position: relative; flex: 1; min-width: 0;
+ display: flex; flex-direction: column; align-items: center; gap: 3px;
+ padding: 7px 2px 5px; border: 0; border-radius: 14px;
+ background: transparent; color: var(--muted);
+ font-size: 10.5px; font-weight: 600; letter-spacing: .01em;
+ transition: color .2s ease;
+}
+/* A soft wash of the shop's gradient behind the active tab, rather than a
+   solid pill: at this size a filled block swallows the icon. */
+.tabs button::before {
+ content: ''; position: absolute; top: 3px; left: 50%; margin-left: -23px;
+ width: 46px; height: 30px;
+ border-radius: 999px; background: var(--sweep);
+ opacity: 0; transform: scale(.7);
+ transition: opacity .2s ease, transform .24s var(--rise);
+}
+.tabs button.active { color: color-mix(in srgb, var(--brand) 86%, var(--text)); }
+.tabs button.active::before { opacity: .18; transform: scale(1); }
+.tabs button svg, .tabs button span:not(.badge) { position: relative; }
+.tabs button svg { transition: transform .24s var(--rise); }
+.tabs button.active svg { transform: translateY(-1px) scale(1.08); }
+.tabs button:active svg { transform: scale(.9); }
+.badge {
+ position: absolute; top: 2px; left: 54%;
+ min-width: 18px; padding: 0 5px;
+ border-radius: 999px; background: #ff4757; color: #fff;
+ font-size: 10.5px; font-weight: 700; line-height: 18px; text-align: center;
+}
+.panel { padding-bottom: 8px; }
+
+/* The shop's name and mark, above the search rather than inside it. The bar
+   below is sticky and already carries the filter button, and a wordmark
+   squeezed in beside the input left nothing room to breathe on a phone --
+   so the brand gets its own line and scrolls away like a masthead. */
+.brand { position: relative; display: flex; align-items: center; gap: 11px; padding: 14px 0 10px; }
+/* A rule in the mark's two colours, running out as it goes: it closes the
+   masthead off from the search below without drawing a box around it. */
+.brand::after {
+ content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
+ background: linear-gradient(90deg, var(--gold), var(--cyan) 46%, transparent 94%);
+ opacity: .5;
+}
+.brand .mark {
+ flex: none; width: 44px; height: 44px; border-radius: 50%;
+ box-shadow: 0 7px 20px -9px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.wordmark {
+ margin: 0; font-size: 20px; font-weight: 680; letter-spacing: -.015em;
+ color: var(--goldInk);
+}
+/* Two-tone, the way the mark is: the gold of its ring, then the cyan of its
+   nebula. Written as one word, coloured as two. */
+.wordmark span { color: var(--cyanInk); }
+
+.searchbar {
+ position: sticky; top: 0; z-index: 2;
+ display: flex; gap: 8px; align-items: center; padding: 12px 0 10px;
+ background: var(--bg);
+}
+.searchbar input {
+ flex: 1; min-width: 0; padding: 12px 15px; border-radius: 13px;
+ border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 16px;
+ transition: border-color .15s, box-shadow .15s;
+}
+.searchbar input:focus {
+ outline: 0; border-color: color-mix(in srgb, var(--brand) 60%, transparent);
+ box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+.searchbar input::placeholder { color: var(--muted); }
+.searchbar button { border: 0; background: var(--surface); color: var(--muted); border-radius: 13px; padding: 12px 14px; font-size: 15px; }
+
+/* Filters. One chip per group is active; the first in each group is the group
+   switched off, which is why it starts active. */
+/* One row that scrolls, not a block that grows: with two groups, wrapping
+   pushed the first card below the fold on a small phone. */
+.chips {
+ display: flex; gap: 7px; margin: 0 -16px 8px; padding: 0 16px 2px;
+ overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+ scroll-snap-type: x proximity;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+ flex: none; scroll-snap-align: start;
+ padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px;
+ background: transparent; color: var(--muted); font-size: 13.5px; white-space: nowrap;
+ transition: background .18s, color .18s, border-color .18s, transform .12s;
+}
+.chip.active { background: var(--sweep); color: #fff; border-color: transparent; font-weight: 600; }
+.chip:active { transform: scale(.94); }
+/* A refinement of the Raw chip above it, not a section of its own. Its chips
+   tick rather than choose, so more than one can be lit at a time. */
+.gradefield { margin: 2px 0 4px; }
+.gradefield .hint { margin: 0 0 8px; }
+/* These wrap where the other groups scroll. A group you pick one of is fine
+   as a row that runs off the edge, because the choice you want is one swipe
+   away; a group you tick several of has to be read whole before you can
+   decide, and the sheet has the height to show it. */
+.gradefield .chips { flex-wrap: wrap; overflow-x: visible; margin: 0; padding: 0; }
+
+/* The filter button rides in the sticky bar beside the search box, so the
+   filters travel with the search rather than scrolling away above it -- and
+   the grid now starts at the top of the screen instead of below two rows of
+   chips. It carries a count when any narrowing is on. */
+.filterbutton { position: relative; display: flex; align-items: center; padding: 12px 13px; }
+.filterbutton.on { background: color-mix(in srgb, var(--brand) 18%, var(--surface)); color: var(--brand); }
+.filterbutton .badge { top: 3px; left: auto; right: 3px; }
+
+/* The sheet. A modal on the glass rather than a section of the page: it rises
+   from the bottom edge on a phone, where a thumb is, and becomes a centred
+   dialog once there is room for one. */
+.sheet { position: fixed; inset: 0; z-index: 9; display: flex; align-items: flex-end; }
+.scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .5); }
+.sheetbody {
+ position: relative; width: 100%; max-height: 86vh; overflow-y: auto;
+ padding: 14px 16px calc(18px + env(safe-area-inset-bottom));
+ background: var(--bg); border-radius: 20px 20px 0 0;
+ box-shadow: 0 -10px 34px rgb(0 0 0 / .42);
+ animation: rise-sheet .22s ease-out;
+}
+@media (min-width: 700px) {
+ .sheet { align-items: center; justify-content: center; }
+ .sheetbody { max-width: 460px; border-radius: 20px; animation: fadeUp .2s ease-out; }
+}
+@keyframes rise-sheet { from { transform: translateY(14px); opacity: .4; } to { transform: none; opacity: 1; } }
+.sheethead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sheethead h2 { font-size: 19px; margin: 2px 0 4px; }
+.sheetclose {
+ flex: none; border: 0; border-radius: 999px; padding: 8px 12px;
+ background: var(--surface); color: var(--muted); font-size: 15px;
+}
+.sheetbody h3 {
+ margin: 16px 0 7px; color: var(--muted);
+ font-size: 11.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase;
+}
+/* Stuck to the bottom edge of the sheet, so a long filter list never hides
+   the way out of it. */
+.sheetactions {
+ position: sticky; bottom: 0; display: flex; gap: 10px; align-items: flex-end;
+ margin-top: 18px; padding: 10px 0 0; background: var(--bg);
+}
+.sheetactions button { margin: 0; flex: 1; }
+.sheetactions .primary { flex: 1.4; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 8px 0 2px; }
+label { display: block; color: var(--muted); font-size: 12.5px; font-weight: 500; margin: 10px 0 0; }
+label input, label select, label textarea, .offerfield input, .offerfield textarea {
+ display: block; width: 100%; margin-top: 5px; padding: 11px 13px;
+ border: 1px solid var(--line); border-radius: 12px;
+ background: var(--surface); color: var(--text); font: inherit; font-size: 16px;
+ transition: border-color .15s, box-shadow .15s;
+}
+label input:focus, label select:focus, label textarea:focus, .offerfield input:focus, .offerfield textarea:focus {
+ outline: 0; border-color: color-mix(in srgb, var(--brand) 60%, transparent);
+ box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+label textarea { resize: vertical; }
+.hint { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+
+/* The grid. Two columns on a phone, more as the screen allows; a card is a
+   button, so the whole tile is the tap target rather than the name alone. */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 11px; }
+.card {
+ display: flex; flex-direction: column; gap: 1px; text-align: left;
+ padding: 7px 7px 11px; border: 1px solid var(--line); border-radius: var(--radius);
+ background: var(--surface); color: var(--text);
+ box-shadow: var(--shadow);
+ transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.card:active { transform: scale(.975); }
+@media (hover: hover) {
+ .card:hover { border-color: color-mix(in srgb, var(--brand) 45%, transparent); box-shadow: 0 2px 4px rgb(0 0 0 / .14), 0 16px 32px -18px var(--brand); }
+}
+.frame {
+ position: relative;
+ /* A stacking context of its own, so the layering below -- the sheen at 1,
+    the grade at 2 -- is a layering inside this tile and nothing else. Without
+    it those numbers sit in the page's own stack, where they tie with the
+    sticky search bar and win on document order: a grade paints over the search
+    box as the grid scrolls under it. It only showed once the grid had settled,
+    because a tile in the middle of its arrival animation is briefly a stacking
+    context anyway, which is why this line and not a higher number on the bar:
+    the layering belongs inside the tile at every moment, not just after one. */
+ isolation: isolate;
+ aspect-ratio: 5 / 7; width: 100%; overflow: hidden; border-radius: 11px;
+ /* A mat rather than a flat panel: lit from above, a shade darker than the
+    tile around it, so the card reads as a photographed object instead of a
+    picture pasted onto a box. */
+ /* The light on the mat is the game's own colour -- gold for Pokemon, cyan
+    for Riftbound, both read off the mark. --tint falls back to the theme's
+    ink, so a tile whose game the server did not resolve looks exactly as
+    every tile did before the games had colours. */
+ background: radial-gradient(118% 92% at 50% 0%, color-mix(in srgb, var(--tint, var(--text)) 15%, var(--mat)) 0%, var(--mat) 74%);
+ box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 7%, transparent);
+ display: flex; align-items: center; justify-content: center;
+ color: var(--muted); font-size: 12px;
+}
+/* A shimmer under the photo, so a loading tile reads as "coming" rather than
+   as an empty box. It stops the moment the image marks itself ready. */
+.frame::after {
+ content: ''; position: absolute; inset: 0;
+ background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--text) 7%, transparent) 50%, transparent 80%);
+ background-size: 220% 100%;
+ animation: sweep 1.3s linear infinite;
+}
+.frame.empty::after, .frame:has(img.ready)::after { content: none; }
+@keyframes sweep { from { background-position: 180% 0; } to { background-position: -80% 0; } }
+@media (prefers-reduced-motion: reduce) { .frame::after { animation: none; } }
+/* contain, never cover. Cropping a slab cuts off the grading label, which is
+   half of what the buyer is looking at; cropping a raw card cuts its art. The
+   shadow is what stops a contained card from floating flat on the mat. */
+.frame img {
+ width: 100%; height: 100%; object-fit: contain; display: block;
+ opacity: 0; transition: opacity .25s ease-out;
+ filter: drop-shadow(0 5px 10px rgb(0 0 0 / .42));
+}
+.frame img.ready { opacity: 1; }
+/* One thread of holographic light across a graded tile, angled the way it
+   would fall on the slab itself. It is the only place the shop borrows from
+   the cards, so it stays a sheen and never becomes a theme. */
+.card.graded { border-color: color-mix(in srgb, var(--gem) 26%, var(--line)); }
+.card.graded .frame::before {
+ content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+ background: linear-gradient(118deg, transparent 38%, color-mix(in srgb, #fff 22%, transparent) 50%, transparent 62%);
+}
+.card.graded .frame.empty::before { content: none; }
+/* The grade, read off the photo rather than out of the line beneath it. A
+   raw card's condition stays a quiet piece of glass; a slab gets the label's
+   own red, and a ten the gold it is worth looking for. */
+/* The two games, each with one colour, used in three places that agree: the
+   light on the tile's mat, the game's name under it, and the chip you filter
+   by. One colour meaning one thing is what keeps it from being decoration. */
+.card.poke .frame { --tint: var(--gold); }
+.card.rift .frame { --tint: var(--cyan); }
+/* A wash over the tile and its edge as well as the mat behind the card,
+   because a photo that fills its frame hides the mat entirely -- and a theme
+   you can only see on the tiles that happen to have a small picture is not
+   one. Both stay under a tenth, so the tile is still the shop's surface with
+   the game's light on it rather than a coloured box. */
+.card.poke { background: color-mix(in srgb, var(--gold) 6%, var(--surface)); }
+.card.rift { background: color-mix(in srgb, var(--cyan) 6%, var(--surface)); }
+.card.poke:not(.graded) { border-color: color-mix(in srgb, var(--gold) 22%, var(--line)); }
+.card.rift:not(.graded) { border-color: color-mix(in srgb, var(--cyan) 22%, var(--line)); }
+.card.poke .meta .game { color: var(--goldInk); }
+.card.rift .meta .game { color: var(--cyanInk); }
+.detail.poke .carousel img, .detail.poke .nophoto { background: color-mix(in srgb, var(--gold) 9%, var(--raised)); }
+.detail.rift .carousel img, .detail.rift .nophoto { background: color-mix(in srgb, var(--cyan) 9%, var(--raised)); }
+/* An active game chip drops the shop's purple for the game's own colour, so
+   the grid and the filter that produced it are saying the same thing. Dark
+   type on both, because gold and cyan are fixed and bright in either theme. */
+.chip[data-game="pokemon"].active {
+ background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 80%, #e09a2e), var(--gold));
+ color: #3a2a00;
+}
+.chip[data-game="riftbound"].active {
+ background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 78%, var(--deep)), var(--cyan));
+ color: #06242c;
+}
+
+.pill {
+ position: absolute; left: 7px; top: 7px; z-index: 2;
+ padding: 3px 8px; border-radius: 7px;
+ background: rgb(10 14 20 / .62); color: #fff;
+ backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+ font-size: 10.5px; font-weight: 650; letter-spacing: .03em; text-transform: uppercase;
+}
+.pill.slab {
+ background: var(--slab); color: #fff;
+ border: 1px solid rgb(255 255 255 / .22); box-shadow: 0 1px 7px rgb(0 0 0 / .45);
+ backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.pill.gem { background: linear-gradient(140deg, #ffe489, var(--gem)); color: #3a2a00; border-color: rgb(0 0 0 / .14); }
+.card .name { font-size: 13px; font-weight: 580; line-height: 1.32; margin-top: 9px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Tabular figures throughout, so a column of prices lines up on the decimal
+   the way a price list should. */
+.card .meta, .meta { color: var(--muted); font-size: 11px; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.card .price { font-size: 18px; margin-top: 4px; }
+/* The mark's gold, because the price is what a buyer came to read. */
+.price { font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--goldInk); }
+.detail .price { font-size: 27px; margin: 10px 0 2px; }
+/* The offer and the button stay within reach while the rest of the card
+   scrolls past, which is the one action this screen exists for. */
+.actionbar {
+ position: sticky; z-index: 3;
+ bottom: calc(var(--bar) + 10px + env(safe-area-inset-bottom));
+ margin: 20px -4px 0; padding: 12px 14px 14px;
+ border: 1px solid var(--line); border-radius: 18px;
+ background: color-mix(in srgb, var(--panel) 92%, var(--bg));
+ backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+ box-shadow: var(--shadow);
+}
+.actionbar .offerfield { margin-top: 0; }
+.actionbar .primary { margin-top: 10px; }
+
+/* Carousel dots: how many photos there are, without reading the line. */
+.dots { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 6px; }
+.dot {
+ width: 7px; height: 7px; padding: 0; border: 0; border-radius: 999px;
+ background: rgb(255 255 255 / .5); box-shadow: 0 1px 3px rgb(0 0 0 / .4);
+ transition: width .24s var(--rise), background .24s ease;
+}
+.dot.on { width: 20px; background: #fff; }
+
+.empty { color: var(--muted); padding: 40px 8px; text-align: center; line-height: 1.5; }
+.more, .primary, .secondary {
+ display: block; width: 100%; margin: 14px 0 0; padding: 14px 16px;
+ border: 0; border-radius: 14px; font-weight: 650; text-align: center;
+ transition: transform .12s ease, opacity .15s;
+}
+.more:active, .primary:active, .secondary:active { transform: scale(.985); }
+.more, .secondary { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+.primary { background: var(--sweep); color: #fff; text-decoration: none; box-shadow: 0 8px 22px -12px var(--brand); }
+.primary:disabled, .secondary:disabled { opacity: .5; box-shadow: none; }
+
+.detail { padding-bottom: 8px; }
+.carousel { position: relative; margin: 18px 0 10px; }
+.carousel img {
+ width: 100%; border-radius: var(--radius); display: block;
+ background: var(--raised); opacity: 0; transition: opacity .25s ease-out;
+}
+.carousel img.ready { opacity: 1; }
+.nophoto { padding: 72px 0; text-align: center; color: var(--muted); background: var(--raised); border-radius: var(--radius); }
+.arrow {
+ position: absolute; top: 50%; transform: translateY(-50%);
+ border: 0; border-radius: 999px; width: 42px; height: 42px; font-size: 22px; line-height: 1;
+ background: rgb(10 14 20 / .55); color: #fff;
+ backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.arrow.left { left: 10px; }
+.arrow.right { right: 10px; }
+.photolabel { color: var(--muted); font-size: 11.5px; letter-spacing: .03em; text-align: center; margin: 8px 0 0; }
+.included { color: var(--muted); font-size: 14px; }
+
+/* Cart rows. The thumbnail keeps the grid's aspect ratio at a width that
+   leaves room for the offer field beside it. */
+.cartrow { display: flex; gap: 13px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.cartrow .frame { width: 76px; flex: none; }
+.cartbody { min-width: 0; flex: 1; }
+.cartbody .name { font-size: 14.5px; font-weight: 600; }
+.gone { color: #ff7a59; font-weight: 600; }
+.offerfield { display: block; color: var(--muted); font-size: 12.5px; font-weight: 500; margin-top: 10px; }
+.linkbutton { border: 0; background: none; padding: 8px 0 0; color: #ff7a59; font-size: 13px; font-weight: 600; }
+#cartSummary { margin-top: 18px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+#cartSummary .price { font-size: 22px; }
+
+/* The catalogue finder, shared by listing a card and asking for one. */
+.results { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 0; }
+.result {
+ text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+ background: var(--surface); color: var(--text); font-size: 14.5px;
+ transition: border-color .15s, transform .12s;
+}
+.result:active { transform: scale(.99); }
+.chosen {
+ font-size: 16px; font-weight: 650; margin: 14px 0 0; padding: 12px 14px;
+ border-radius: 12px; background: var(--raised);
+ border-left: 3px solid var(--brand);
+}
+.uploads { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0; }
+.filebutton {
+ flex: 1 1 120px; position: relative; margin: 0; padding: 14px 12px;
+ border: 1px dashed color-mix(in srgb, var(--brand) 45%, var(--line));
+ border-radius: 12px; background: color-mix(in srgb, var(--brand) 6%, transparent);
+ color: var(--text); font-size: 13px; font-weight: 550; text-align: center;
+}
+.filebutton input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.skipphotos { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.skipphotos input { display: inline-block; width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--brand); }
+
+.submission {
+ padding: 14px; margin-top: 10px; border: 1px solid var(--line);
+ border-radius: 14px; background: var(--surface);
+}
+.submission .name { font-size: 14.5px; font-weight: 600; }
+.submission .state {
+ display: inline-block; margin-top: 7px; padding: 3px 10px; border-radius: 999px;
+ background: color-mix(in srgb, var(--brand) 16%, transparent);
+ color: color-mix(in srgb, var(--brand) 85%, var(--text));
+ font-size: 11.5px; font-weight: 650;
+}
+
+.status {
+ position: fixed; left: 16px; right: 16px; bottom: calc(var(--bar) + 14px + env(safe-area-inset-bottom));
+ z-index: 5; margin: 0; padding: 12px 16px; border-radius: 14px; text-align: center;
+ font-size: 14px; font-weight: 500;
+ background: color-mix(in srgb, var(--panel) 92%, var(--text) 8%);
+ color: var(--text);
+ box-shadow: var(--shadow);
+}
+.status.error { background: #c0392b; color: #fff; }
+
+/* Motion. Short, and all of it goes away for anyone who has asked their
+   phone for less of it. */
+@keyframes rise {
+ from { opacity: 0; transform: translateY(12px) scale(.98); }
+ to { opacity: 1; transform: none; }
+}
+@keyframes fadeUp {
+ from { opacity: 0; transform: translateY(7px); }
+ to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+ 0% { transform: scale(1); }
+ 45% { transform: scale(1.4); }
+ 100% { transform: scale(1); }
+}
+/* Cards arrive in order, about a frame apart, capped so a full page does not
+   end in a visible queue. `backwards` holds the first frame during the delay,
+   or they would flash in at full opacity first. */
+.card {
+ animation: rise .3s var(--rise) backwards;
+ animation-delay: calc(var(--i, 0) * 26ms);
+}
+.card.settled { animation: none; }
+.panel:not([hidden]) { animation: fadeUp .24s ease-out; }
+.result, .cartrow, .submission { animation: fadeUp .22s ease-out backwards; }
+.badge.pop { animation: pop .36s cubic-bezier(.34, 1.56, .64, 1); }
+@media (prefers-reduced-motion: reduce) {
+ *, *::before, *::after {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+ }
+}
