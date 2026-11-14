@@ -465,7 +465,7 @@ const claimOrderStatusLabel=o=>({choosing:'Waiting for buyer to pick mail or pic
 const claimOrderOpen=o=>['choosing','address','awaiting_payment'].includes(o.status);
 let checkoutQr='',checkoutQrPreviewURL='';
 function showCheckoutQr(previewBlob){if(checkoutQrPreviewURL){URL.revokeObjectURL(checkoutQrPreviewURL);checkoutQrPreviewURL='';}const img=$('checkoutQrPreview');if(previewBlob){checkoutQrPreviewURL=URL.createObjectURL(previewBlob);img.src=checkoutQrPreviewURL;}img.hidden=!previewBlob;$('checkoutQrRemove').hidden=!checkoutQr;$('checkoutQrStatus').textContent=!checkoutQr?'No QR yet. Upload the PayNow QR from your bank app; buyers get it with their total.':previewBlob?'New QR ready. Save checkout settings to use it.':'PayNow QR saved. Buyers get it with their total.';}
-function fillCheckout(){if(!claimCheckout)return;$('checkoutMailFee').value=money(claimCheckout.mailFee);$('checkoutPayNow').value=claimCheckout.paynow||'';$('checkoutPickup').value=claimCheckout.pickup||'';$('checkoutPickupArea').value=claimCheckout.pickupArea||'';$('checkoutPayMinutes').value=String(claimCheckout.payMinutes||10);checkoutQr=claimCheckout.paynowQr||'';showCheckoutQr(null);}
+function fillCheckout(){if(!claimCheckout)return;$('checkoutMailFee').value=money(claimCheckout.mailFee);$('checkoutPayNow').value=claimCheckout.paynow||'';$('checkoutPickup').value=claimCheckout.pickup||'';$('checkoutPickupArea').value=claimCheckout.pickupArea||'';$('checkoutPayMinutes').value=String(claimCheckout.payMinutes||10);$('checkoutFreeMailFrom').value=claimCheckout.freeMailFrom?money(claimCheckout.freeMailFrom):'';checkoutQr=claimCheckout.paynowQr||'';showCheckoutQr(null);}
 function claimOrderButton(order,label,run,danger){const button=el('button',label);button.type='button';if(danger)button.className='danger';button.onclick=()=>task(run);return button;}
 async function changeClaimOrder(order,action,label){
  if(!await confirmAction(label+'?',action==='paid'?'Marks every card in this order paid and records each sale once. The buyer gets a DM.':action==='cancel'?'The claims stay approved and can be sent again in a new order. The buyer gets a DM.':'The buyer gets a DM.',order.lines.map(l=>({name:'Claim #'+l.saleId+' '+l.name,price:l.price,sale:l.price}))))return;
@@ -483,7 +483,7 @@ function claimProofView(o){
  else{const session=token;api('photo',{photo:o.paymentProof},true).then(blob=>{if(session!==token)return;const url=URL.createObjectURL(blob);proofURLs.set(o.paymentProof,url);show(url);}).catch(()=>box.append(el('p','Could not load the screenshot.','rowerror')));}
  return box;
 }
-const deliveryStatusLabel=d=>({choosing:'Waiting for mail or meetup',address:'Waiting for address',awaiting_payment:d.paymentProof?'Shipping screenshot · check and confirm':'Waiting for shipping payment',meetup:'Meetup · arrange a time',paid:'Shipping paid · to mail',shipped:'Mailed',collected:'Collected',cancelled:'Cancelled'})[d.status]||d.status;
+const deliveryStatusLabel=d=>({choosing:'Waiting for mail or meetup',address:'Waiting for address',awaiting_payment:d.paymentProof?'Shipping screenshot · check and confirm':'Waiting for shipping payment',meetup:'Meetup · arrange a time',paid:d.freeMail&&!d.paymentProof?'Free mailing · to mail':'Shipping paid · to mail',shipped:'Mailed',collected:'Collected',cancelled:'Cancelled'})[d.status]||d.status;
 const deliveryOpen=d=>['choosing','address','awaiting_payment','meetup'].includes(d.status);
 function renderDeliveries(){
  const list=$('claimDeliveries');if(!list)return;list.replaceChildren();
@@ -493,7 +493,7 @@ function renderDeliveries(){
   const card=el('article',undefined,'claimCard claimOrderCard'),heading=el('div',undefined,'claimCardHeading');
   heading.append(el('h3',(d.test?'[test] ':'')+'Delivery #'+d.id+' · '+claimBuyer(d.buyerName,d.buyerId)),el('span',deliveryStatusLabel(d),'claimStatus'));card.append(heading);
   for(const l of d.lines)card.append(el('p',l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
-  card.append(el('p','Cards paid SGD '+money(d.cardsTotal)+' · '+(d.method==='mail'?'Mail · shipping SGD '+money(d.mailFee)+' · Ref SHIP'+d.id:d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
+  card.append(el('p','Cards paid SGD '+money(d.cardsTotal)+' · '+(d.method==='mail'?(d.freeMail?'Mail · free mailing':'Mail · shipping SGD '+money(d.mailFee)+' · Ref SHIP'+d.id):d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
   if(d.address)card.append(el('p','Mail to: '+d.address,'claimAddress'));
   if(d.paymentProof)card.append(claimProofView({...d,ref:'SHIP'+d.id}));
   if(d.remindedAt&&deliveryOpen(d)&&d.status!=='meetup')card.append(el('p','No answer for 24 hours: reminded once. Please follow up with the buyer.','rowerror'));
@@ -541,7 +541,7 @@ function renderClaimOrders(){
 // The QR is uploaded as-is (prepared) so the server never crops it to a card shape.
 $('checkoutQrFile').onchange=e=>task(async()=>{const file=e.target.files[0];e.target.value='';if(!file)return;const body=new FormData();body.append('photo',file,'paynow.jpg');body.append('prepared','true');const result=await api('upload',body);checkoutQr=result.photo;showCheckoutQr(file);status('QR uploaded. Save checkout settings to use it.');});
 $('checkoutQrRemove').onclick=()=>{checkoutQr='';showCheckoutQr(null);status('QR removed. Save checkout settings to apply.');};
-$('saveCheckout').onclick=()=>task(async()=>{const fee=cents($('checkoutMailFee').value.trim()||'0');if(fee===null)throw Error('Enter the mailing fee in SGD, for example 3.00.');const payMinutes=Number($('checkoutPayMinutes').value.trim()||'10');if(!Number.isInteger(payMinutes)||payMinutes<1||payMinutes>240)throw Error('Pay within must be 1 to 240 minutes.');claimCheckout=await api('claims',{action:'checkout',checkout:{mailFee:fee,paynow:$('checkoutPayNow').value.trim(),pickup:$('checkoutPickup').value.trim(),pickupArea:$('checkoutPickupArea').value.trim(),payMinutes,paynowQr:checkoutQr}});fillCheckout();status('Checkout settings saved.');});
+$('saveCheckout').onclick=()=>task(async()=>{const fee=cents($('checkoutMailFee').value.trim()||'0');if(fee===null)throw Error('Enter the mailing fee in SGD, for example 3.00.');const freeMailFrom=cents($('checkoutFreeMailFrom').value.trim()||'0');if(freeMailFrom===null)throw Error('Enter free mailing from in SGD, for example 50.00, or leave it empty.');const payMinutes=Number($('checkoutPayMinutes').value.trim()||'10');if(!Number.isInteger(payMinutes)||payMinutes<1||payMinutes>240)throw Error('Pay within must be 1 to 240 minutes.');claimCheckout=await api('claims',{action:'checkout',checkout:{mailFee:fee,paynow:$('checkoutPayNow').value.trim(),pickup:$('checkoutPickup').value.trim(),pickupArea:$('checkoutPickupArea').value.trim(),payMinutes,freeMailFrom,paynowQr:checkoutQr}});fillCheckout();status('Checkout settings saved.');});
 $('claimFilter').onchange=()=>renderClaims();
 $('claimSelectAll').onclick=()=>{for(const s of claimShown())claimPicked.add(s.id);renderClaims();};
 $('claimBulkClear').onclick=()=>{claimPicked.clear();renderClaims();};
