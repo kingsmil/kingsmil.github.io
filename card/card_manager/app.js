@@ -64,10 +64,10 @@ async function api(path,body={},blob=false,signal){
 }
 
 function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];claimDeliveries=[];saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes'].forEach(id=>$(id).value='');$('claimFilter').value='all';$('claimBulkBar').hidden=true;keepClaimSubmission(null);$('claimSales').replaceChildren();$('claimCreateForm').reset();clearClaimSearch();$('claimSlabLabel').hidden=true;lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
-async function task(fn){if(busy)return;lock(true);try{await fn();}catch(e){status(e.message,true);}finally{lock(false);if(!$('workspace').hidden)render();}}
+async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
- const data=initialData||await api('data');limitedSeller=!!data.limitedSeller;managerStaff=!!data.managerStaff;$('automationSettings').hidden=managerStaff;document.querySelector('[data-tab=expenses]').hidden=limitedSeller;document.querySelector('[data-tab=ledger]').hidden=limitedSeller;document.querySelector('[data-tab=carousell]').hidden=limitedSeller;document.querySelector('[data-tab=central]').hidden=limitedSeller;document.querySelector('[data-tab=claims]').hidden=false;$('claimRouteSettings').hidden=managerStaff||limitedSeller;$('saveEntryRate').hidden=limitedSeller||managerStaff;$('entryRate').readOnly=limitedSeller||managerStaff;if(limitedSeller&&['carousell','central','claims','expenses','ledger'].includes(tab))tab='drafts';
+ const data=initialData||await api('data');limitedSeller=!!data.limitedSeller;managerStaff=!!data.managerStaff;$('automationSettings').hidden=managerStaff;document.querySelector('[data-tab=expenses]').hidden=limitedSeller;document.querySelector('[data-tab=ledger]').hidden=limitedSeller;document.querySelector('[data-tab=carousell]').hidden=limitedSeller;document.querySelector('[data-tab=central]').hidden=limitedSeller;document.querySelector('[data-tab=claims]').hidden=false;$('claimRouteSettings').hidden=false;$('saveEntryRate').hidden=limitedSeller||managerStaff;$('entryRate').readOnly=limitedSeller||managerStaff;if(limitedSeller&&['carousell','central','claims','expenses','ledger'].includes(tab))tab='drafts';
  // A seller must not keep another seller's rows in memory across a sign-out
  // and a sign-in as someone else in the same browser tab.
  if(limitedSeller){clearLedger();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
@@ -407,7 +407,7 @@ async function runClaimBulk(b){
 }
 function renderClaims(){
  $('claimCount').textContent=claims.filter(s=>!claimQueued(s)&&!['shipped','converted'].includes(s.status)).length;$('queueCount').textContent=claims.filter(claimQueued).length;
- $('claimRouteSettings').hidden=managerStaff||limitedSeller;
+ $('claimRouteSettings').hidden=false;
  if(claimRoute?.topicId){const chat=String(claimRoute.channelId);$('claimTopicLink').value=chat.startsWith('-100')?'https://t.me/c/'+chat.slice(4)+'/'+claimRoute.topicId:'';}
  $('claimRouteNow').textContent=!claimRoute?'Not set up yet.':claimRoute.topicId?'Now posting to a topic, one shared thread.':'Now posting to channel '+claimRoute.channelId+' · comments in group '+claimRoute.discussionId+'.';
  const list=$('claimSales');list.replaceChildren();
@@ -861,8 +861,9 @@ function picked(){const rows=(tab==='drafts'?drafts:stock).filter(r=>selected.ha
 function payload(r){const out={id:r.id||'',revision:r.revision,cardId:r.cardId,name:r.name,condition:r.condition,slab:r.slab||'',cost:r.cost,price:r.price,photos:r.photos||[]};if(r.stockId){out.included=r.included||'';out.stockId=r.stockId;out.sold=r.sold;out.sale=r.sale||0;out.consignment=r.consignment;}return out;}
 async function saveRows(rows,which=tab,redraw=true){
  validateRows(rows);
- const result=await api(which==='drafts'?'drafts':'stock',{rows:rows.map(payload),action:'save'});
- result.forEach((out,i)=>{const row=rows[i];row.error=out.error||'';if(!out.error){if(which==='drafts')row.revision=out.revision;else row.revision++;row.stockDirty=false;if(!row.saleDirty)dirty.delete(key(row));}});
+ const sent=structuredClone(rows.map(payload));
+ const result=await api(which==='drafts'?'drafts':'stock',{rows:sent,action:'save'});
+ result.forEach((out,i)=>{const row=rows[i];row.error=out.error||'';if(!out.error){const unchanged=JSON.stringify(payload(row))===JSON.stringify(sent[i]);if(which==='drafts')row.revision=out.revision;else row.revision++;if(unchanged){row.stockDirty=false;if(!row.saleDirty)dirty.delete(key(row));}}});
  if(redraw)render();
  return result.every(r=>!r.error);
 }
@@ -874,7 +875,7 @@ async function saveRows(rows,which=tab,redraw=true){
 // you are still typing in one of them. For the same reason a finished save
 // does not redraw the table: it updates the dirty marks and the row messages
 // in place, so the cursor stays where you left it.
-let saveTimer=null,saving=false,saveAgain=false;
+let saveTimer=null,saving=false,saveAgain=false,saveFlight=Promise.resolve();
 const savableRows=which=>(which==='drafts'?drafts:stock).filter(r=>dirty.has(key(r))&&!r.sold);
 const priceBroken=r=>Object.keys(r.invalidPrices||{}).length>0;
 function showSaveState(text,bad=false){const n=$('saveState');if(!n)return;n.textContent=text;n.classList.toggle('saveFailed',bad);}
@@ -901,6 +902,7 @@ function scheduleSave(which=tab){
 }
 async function autosave(which){
  clearTimeout(saveTimer);
+ if(busy)return;
  if(saving){saveAgain=true;return;}
  const rows=savableRows(which);
  if(!rows.length){showSaveState('');return;}
@@ -911,14 +913,14 @@ async function autosave(which){
  if(!ready.length){showSaveState('Fix the invalid amount to save',true);refreshRowState();return;}
  saving=true;showSaveState('Saving…');
  let ok=false,failure='';
- try{ok=await saveRows(ready,which,false);}
+ try{saveFlight=saveRows(ready,which,false);ok=await saveFlight;}
  catch(e){failure=e.message;}
  saving=false;saveAgain=false;
  if(failure)showSaveState(failure,true);
  else if(broken.length)showSaveState('Fix the invalid amount to save',true);
  else showSaveState(ok?'All changes saved':'Some rows need attention',!ok);
  refreshRowState();
- if(savableRows(which).some(r=>!priceBroken(r)))scheduleSave(which);
+ if(!failure&&ok&&savableRows(which).some(r=>!priceBroken(r)))scheduleSave(which);
 }
 function confirmAction(title,text,rows){return new Promise(resolve=>{
  $('confirmTitle').textContent=title;$('confirmText').textContent=text;$('confirmCards').replaceChildren();
