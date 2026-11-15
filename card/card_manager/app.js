@@ -210,7 +210,7 @@ async function loadClaims(){
 // asking you to reload the page (which would sign you out).
 async function claimWrite(body){
  try{return await api('claims',body);}
- catch(e){if(!/changed; (reload|refresh)/.test(e.message))throw e;await loadClaims();throw Error('This changed while you were looking (someone acted in Telegram or the manager). The list is refreshed: check it and try again.');}
+ catch(e){if(!/changed; reload/.test(e.message))throw e;await loadClaims();throw Error('This changed in Telegram while you were looking (the buyer acted). The list is refreshed: check it and try again.');}
 }
 const claimBuyer=(name,id)=>name||'buyer '+id;
 // Claim queue: staged claim sales waiting for the next claim sale.
@@ -438,7 +438,7 @@ function renderClaims(){
 const claimOfferLive=o=>o.status==='pending'||o.status==='countered';
 const claimOfferStatusLabel=o=>({pending:'Waiting for you',countered:'Countered SGD '+money(o.counter)+' · waiting for buyer',accepted:'Accepted',rejected:'Declined',withdrawn:'Replaced by a newer offer',closed:'Closed'})[o.status]||o.status;
 function claimOfferRows(sale){
- const offers=claimOffers.filter(o=>o.saleId===sale.id);if(!offers.length)return[];
+ const offers=claimOffers.filter(o=>o.saleId===sale.id&&(claimOfferLive(o)||o.status==='accepted'));if(!offers.length)return[];
  const box=el('div',undefined,'claimOffers');box.append(el('h4','Offers'));
  for(const o of offers){
   const row=el('div',undefined,'claimOffer');row.append(el('p',(o.buyerName||'Buyer '+o.buyerId)+' offered SGD '+money(o.amount)+' · '+claimOfferStatusLabel(o)));
