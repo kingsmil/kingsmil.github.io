@@ -368,6 +368,20 @@ function claimActionButton(sale,label,action){
  button.onclick=()=>task(async()=>{if(!await confirmAction(label+'?','This changes only the claim sale status. Payment and mailing remain manual.',[]))return;const changed=await claimWrite({action:'change',saleId:sale.id,revision:sale.revision,commandKey:newID(),claimAction:action});const index=claims.findIndex(row=>row.id===sale.id);if(index>=0)claims[index]=changed;renderClaims();status(label+' completed.');});
  return button;
 }
+// Whether buyers may haggle on this card, or only take it at its claim
+// price. It is allowed while the card is open, posted or still queued,
+// because it only takes the Offer button off the post or puts it back.
+function claimOffersButton(sale){
+ const off=sale.noOffers===true,label=off?'Allow offers':'Claim price only';
+ const button=el('button',label);button.type='button';
+ button.onclick=()=>task(async()=>{
+  const detail=off?'Buyers get the Offer button back on this card.':'The post loses its Offer button and any offer waiting on it is closed. Buyers can only take it at the claim price.';
+  if(!await confirmAction(label+'?',detail,[]))return;
+  const changed=await claimWrite({action:'offers',saleId:sale.id,revision:sale.revision,commandKey:newID(),noOffers:!off});
+  const index=claims.findIndex(row=>row.id===sale.id);if(index>=0)claims[index]=changed;renderClaims();status(off?'Offers allowed again.':'Claim price only.');
+ });
+ return button;
+}
 function claimPublicationButton(sale,label,action){
  const button=el('button',label);button.type='button';
  button.onclick=()=>task(async()=>{
@@ -441,13 +455,14 @@ function renderClaims(){
   const title=el('div',undefined,'claimTitle');title.append(pick,el('h3',(sale.test?'[test] ':'')+sale.name));heading.append(title,el('span',claimStatusLabel(sale.status),'claimStatus'));
   const condition=sale.condition==='Slab'?'Slab · '+sale.slab:sale.condition;
   card.append(heading,el('p',condition+' · Fixed price SGD '+money(sale.price)+(sale.listPrice&&sale.listPrice!==sale.price?' (offer · listed SGD '+money(sale.listPrice)+')':'')),el('p',(sale.costHidden?'Another seller\'s card':'Cost SGD '+money(sale.cost)+(sale.inventoryOwner&&!limitedSeller?' · Seller '+sale.inventoryOwner+'\'s card':''))+' · Claim #'+sale.id,'hint'));
+  if(sale.noOffers===true)card.append(el('p','Claim price only · no offers','claimPriceOnly'));
   if(sale.included)card.append(el('p','Includes: '+sale.included,'hint'));
   if(sale.claimantId)card.append(el('p','Reserved by '+(sale.claimantName?sale.claimantName+' · ':'')+'Telegram ID '+sale.claimantId));
   card.append(el('p',claimPublicationLabel(sale.publicationStatus),sale.publicationStatus==='uncertain'?'rowerror':'hint'));
   if(sale.publicationError)card.append(el('p',sale.publicationError,'rowerror'));
   if(sale.orderId)card.append(el('p','In order #'+sale.orderId+' · update it under Confirmed order','hint'));
   const actions=el('div',undefined,'claimActions');
-  if(sale.status==='open')actions.append(claimActionButton(sale,'Move to normal listings','convert'));
+  if(sale.status==='open')actions.append(claimActionButton(sale,'Move to normal listings','convert'),claimOffersButton(sale));
   if(sale.status==='pending_approval')actions.append(claimActionButton(sale,'Approve claim','approve'),claimActionButton(sale,'Reject & reopen','reject'),claimActionButton(sale,'Cancel & reopen','cancel'),claimActionButton(sale,'Move to normal listings','convert'));
   if(sale.status==='awaiting_payment')actions.append(claimActionButton(sale,'Confirm PayNow','paid'),claimActionButton(sale,'Cancel & reopen','cancel'),claimActionButton(sale,'Move to normal listings','convert'));
   if(sale.status==='paid')actions.append(claimActionButton(sale,'Mark shipped','shipped'));
