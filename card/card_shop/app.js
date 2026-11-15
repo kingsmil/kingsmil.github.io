@@ -16,7 +16,7 @@ const base = window.CARD_API_BASE;
 let token = '', role = 'buyer', query = '', offset = 0, total = 0;
 let items = [], searchSeq = 0, loading = false, open = null, slot = 0;
 let filter = {game: '', condition: '', grades: [], minPrice: 0, maxPrice: 0, sort: ''};
-let cartNoteDraft = null, checkoutBusy = false;
+let cartNoteDraft = null, checkoutBusy = false, offersSeq = 0;
 let requestBusy = false, requestAttempt = null;
 let cart = {items: [], total: 0, asking: 0, revision: 0, notes: '', ready: false};
 let tab = 'browse', sellCard = null, sellPhotos = {front: '', back: '', details: []}, sellUploading = 0, requestCard = null;
@@ -383,6 +383,7 @@ async function addToCart() {
   renderCart();
   closeListing();
   show('cart');
+  loadOffers();
   status('Offer saved. It is in your cart.');
  } catch (failure) {
   fail(failure);
@@ -396,16 +397,43 @@ async function checkout() {
  const note = $('cartNote').value.trim();
  status('Sending…');
  try {
-  const result = await api('checkout', {revision: cart.revision, note});
+  await api('checkout', {revision: cart.revision, note});
   cartNoteDraft = null;
   await refreshCart();
-  status('Offer sent. The seller replies in Telegram.');
+  await loadOffers();
+  status('Offer sent. The shop follows up in Telegram.');
  } catch (failure) {
   fail(failure);
   await refreshCart();
  } finally {
   checkoutBusy = false;
   renderCart();
+ }
+}
+
+const offerState = {received: 'Received', reviewing: 'With shop'};
+async function loadOffers() {
+ const seq = ++offersSeq;
+ try {
+  const found = await api('offers', {offset: 0});
+  if (seq !== offersSeq) return;
+  const list = $('offers');
+  list.textContent = '';
+  for (const offer of found.offers || []) {
+   const row = el('div', undefined, 'submission');
+   row.appendChild(el('p', 'Submitted offer', 'name'));
+   row.appendChild(el('p', new Date(offer.createdAt).toLocaleString(), 'meta'));
+   for (const item of offer.items || []) {
+    row.appendChild(el('p', item.name + ' · ' + grade(item) + ' · ' + money(item.offer), 'meta'));
+   }
+   row.appendChild(el('p', offerState[offer.status] || offer.status, 'state'));
+   if (offer.notes) row.appendChild(el('p', 'Note: ' + offer.notes, 'meta'));
+   row.appendChild(el('p', 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
+   list.appendChild(row);
+  }
+  $('offersEmpty').hidden = (found.offers || []).length > 0;
+ } catch (failure) {
+  if (seq === offersSeq) fail(failure);
  }
 }
 
@@ -709,7 +737,7 @@ function wireUp() {
  for (const button of document.querySelectorAll('#tabs button')) {
   button.addEventListener('click', () => {
    show(button.dataset.tab);
-   if (button.dataset.tab === 'cart') refreshCart();
+   if (button.dataset.tab === 'cart') { refreshCart(); loadOffers(); }
    if (button.dataset.tab === 'requests') loadSubmissions();
   });
  }

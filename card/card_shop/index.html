@@ -21,7 +21,7 @@
 <p id="detailMeta" class="meta"></p>
 <p id="detailPrice" class="price"></p>
 <p id="detailIncluded" class="included" hidden></p>
-<p id="offerHint" class="hint">An offer is not a reservation. The seller replies in Telegram.</p>
+<p id="offerHint" class="hint">An offer is not a reservation. The shop follows up in Telegram.</p>
 <a id="openInBot" class="secondary" href="#" hidden>Open this card in the bot</a>
 <button id="back" class="secondary" type="button">Back to the shop</button>
 <div class="actionbar">
@@ -37,12 +37,15 @@
 <div id="cartSummary" hidden>
 <p class="meta">Asking total <span id="cartAsking"></span></p>
 <p class="price">Your total <span id="cartTotal"></span></p>
-<label class="offerfield">Note for the seller<textarea id="cartNote" rows="2" maxlength="200" placeholder="Optional · bundle, timing, anything else"></textarea></label>
+<label class="offerfield">Note for the shop<textarea id="cartNote" rows="2" maxlength="200" placeholder="Optional · bundle, timing, anything else"></textarea></label>
 <button id="saveNote" class="secondary" type="button">Save note</button>
 <button id="checkout" class="primary" type="button">Send offers</button>
 <button id="clearCart" class="secondary" type="button">Empty cart</button>
-<p class="hint">Nothing is reserved until the seller agrees.</p>
+<p class="hint">Nothing is reserved until the shop confirms. The shop will follow up in Telegram.</p>
 </div>
+<h2>Submitted offers</h2>
+<div id="offers"></div>
+<p id="offersEmpty" class="empty" hidden>No submitted offers yet.</p>
 </section>
 
 <section id="sell" class="panel" hidden>
