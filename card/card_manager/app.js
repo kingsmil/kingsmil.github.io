@@ -1,10 +1,7 @@
 'use strict';
 (() => {
 const $=id=>document.getElementById(id);
-const claimSubmissionKey='card-manager-pending-claim';
-function storedClaimSubmission(){try{return JSON.parse(sessionStorage.getItem(claimSubmissionKey)||'null');}catch{return null;}}
-function keepClaimSubmission(value){claimSubmission=value;try{if(value)sessionStorage.setItem(claimSubmissionKey,JSON.stringify(value));else sessionStorage.removeItem(claimSubmissionKey);}catch{}}
-let claimDeliveries=[],saleRunning=false,claimOffers=[],managerStaff=false, limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, claimSubmission=storedClaimSubmission(), selected=new Set(), dirty=new Set(), busy=false, bot='';
+let claimDeliveries=[],saleRunning=false,claimOffers=[],managerStaff=false, limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
 let batches=[],collections=[],template={},templateDirty=false,entryRate=0,expenses=[],trades=[];
 // The combined inventory is held apart from `stock` on purpose. `stock` is
 // this account's own and every edit path writes to it; these rows belong to
@@ -63,7 +60,7 @@ async function api(path,body={},blob=false,signal){
  }catch(e){if(timeout.aborted)throw Error('Request timed out. Reload inventory before retrying changes.');throw e;}
 }
 
-function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];claimDeliveries=[];saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes'].forEach(id=>$(id).value='');$('claimFilter').value='all';$('claimBulkBar').hidden=true;keepClaimSubmission(null);$('claimSales').replaceChildren();$('claimCreateForm').reset();clearClaimSearch();$('claimSlabLabel').hidden=true;lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
+function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];claimDeliveries=[];saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
 async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
@@ -387,7 +384,23 @@ const claimBulkActions=[{id:'claimBulkApprove',action:'approve',label:'Approve',
 const claimBulkRows=b=>claims.filter(s=>claimPicked.has(s.id)&&s.status===b.from&&!(s.orderId&&b.action!=='approve'));
 const claimPlural=n=>n+' '+(n===1?'claim':'claims');
 const claimQueued=s=>s.publicationStatus==='staged'&&s.status==='open';
-function claimShown(){const f=$('claimFilter').value;return claims.filter(s=>!claimQueued(s)).filter(s=>f==='all'||(f==='done'?['shipped','converted'].includes(s.status):s.status===f));}
+// Which part of the claim sale the panel is showing. 'cards' is every
+// claim with its own filter, 'offers' the ones waiting on our counter,
+// and the other two the order and the delivery that follow.
+let claimTab='cards';
+const claimTabSales=s=>claimOffers.some(o=>o.saleId===s.id&&claimOfferLive(o));
+function claimShown(){
+ const live=claims.filter(s=>!claimQueued(s));
+ if(claimTab==='offers')return live.filter(claimTabSales);
+ const f=$('claimFilter').value;return live.filter(s=>f==='all'||(f==='done'?['shipped','converted'].includes(s.status):s.status===f));
+}
+function showClaimTab(next){
+ claimTab=next;
+ // A selection made under one tab must not be acted on from another,
+ // where the rows it refers to are not on screen.
+ claimPicked.clear();
+ renderClaims();
+}
 function updateClaimBulk(){
  $('claimBulkBar').hidden=!claimPicked.size;$('claimBulkCount').textContent=claimPicked.size+' selected';
  for(const b of claimBulkActions){const n=claimBulkRows(b).length,button=$(b.id);button.textContent=b.label+' ('+n+')';button.disabled=busy||!n;}
@@ -406,7 +419,17 @@ async function runClaimBulk(b){
  if(failed.length)status(claimPlural(ok)+' updated · '+failed.length+' failed — '+failed.join('; ')+' Refresh claims, then retry the selection.',true);else status(claimPlural(ok)+' updated.');
 }
 function renderClaims(){
- $('claimCount').textContent=claims.filter(s=>!claimQueued(s)&&!['shipped','converted'].includes(s.status)).length;$('queueCount').textContent=claims.filter(claimQueued).length;
+ const open=claims.filter(s=>!claimQueued(s)&&!['shipped','converted'].includes(s.status));
+ $('claimCount').textContent=open.length;$('queueCount').textContent=claims.filter(claimQueued).length;
+ $('claimCardsCount').textContent=open.length;
+ $('claimOffersCount').textContent=claims.filter(s=>!claimQueued(s)&&claimTabSales(s)).length;
+ $('claimOrderCount').textContent=claimOrders.filter(o=>claimOrderOpen(o)||o.status==='paid').length;
+ $('claimShippingCount').textContent=claimDeliveries.filter(d=>deliveryOpen(d)||d.status==='paid').length;
+ for(const b of document.querySelectorAll('[data-claimtab]'))b.classList.toggle('active',b.dataset.claimtab===claimTab);
+ $('claimCardsSection').hidden=claimTab!=='cards'&&claimTab!=='offers';
+ $('claimToolbar').hidden=claimTab!=='cards';
+ $('claimOrdersSection').hidden=claimTab!=='orders';
+ $('claimShippingSection').hidden=claimTab!=='shipping';
  $('claimRouteSettings').hidden=false;
  if(claimRoute?.topicId){const chat=String(claimRoute.channelId);$('claimTopicLink').value=chat.startsWith('-100')?'https://t.me/c/'+chat.slice(4)+'/'+claimRoute.topicId:'';}
  $('claimRouteNow').textContent=!claimRoute?'Not set up yet.':claimRoute.topicId?'Now posting to a topic, one shared thread.':'Now posting to channel '+claimRoute.channelId+' · comments in group '+claimRoute.discussionId+'.';
@@ -422,7 +445,7 @@ function renderClaims(){
   if(sale.claimantId)card.append(el('p','Reserved by '+(sale.claimantName?sale.claimantName+' · ':'')+'Telegram ID '+sale.claimantId));
   card.append(el('p',claimPublicationLabel(sale.publicationStatus),sale.publicationStatus==='uncertain'?'rowerror':'hint'));
   if(sale.publicationError)card.append(el('p',sale.publicationError,'rowerror'));
-  if(sale.orderId)card.append(el('p','In order #'+sale.orderId+' · update it from Orders above','hint'));
+  if(sale.orderId)card.append(el('p','In order #'+sale.orderId+' · update it under Confirmed order','hint'));
   const actions=el('div',undefined,'claimActions');
   if(sale.status==='open')actions.append(claimActionButton(sale,'Move to normal listings','convert'));
   if(sale.status==='pending_approval')actions.append(claimActionButton(sale,'Approve claim','approve'),claimActionButton(sale,'Reject & reopen','reject'),claimActionButton(sale,'Cancel & reopen','cancel'),claimActionButton(sale,'Move to normal listings','convert'));
@@ -432,7 +455,8 @@ function renderClaims(){
   if(sale.orderId)actions.replaceChildren();
   if(actions.childElementCount)card.append(actions);card.append(...claimOfferRows(sale));list.append(card);
  }
- if(!claims.length)list.append(el('p','No claim sales yet.','empty'));else if(!shownClaims.length)list.append(el('p','No claims in this view.','empty'));
+ if(!claims.length)list.append(el('p','No claim sales yet. Move cards here from Available or Drafts.','empty'));
+ else if(!shownClaims.length)list.append(el('p',claimTab==='offers'?'No offers waiting on you.':'No claims in this view.','empty'));
  $('claimSelectAll').disabled=busy||!shownClaims.length;updateClaimBulk();renderClaimOrders();
 }
 const claimOfferLive=o=>o.status==='pending'||o.status==='countered';
@@ -543,11 +567,10 @@ $('checkoutQrFile').onchange=e=>task(async()=>{const file=e.target.files[0];e.ta
 $('checkoutQrRemove').onclick=()=>{checkoutQr='';showCheckoutQr(null);status('QR removed. Save checkout settings to apply.');};
 $('saveCheckout').onclick=()=>task(async()=>{const fee=cents($('checkoutMailFee').value.trim()||'0');if(fee===null)throw Error('Enter the mailing fee in SGD, for example 3.00.');const freeMailFrom=cents($('checkoutFreeMailFrom').value.trim()||'0');if(freeMailFrom===null)throw Error('Enter free mailing from in SGD, for example 50.00, or leave it empty.');const payMinutes=Number($('checkoutPayMinutes').value.trim()||'10');if(!Number.isInteger(payMinutes)||payMinutes<1||payMinutes>240)throw Error('Pay within must be 1 to 240 minutes.');claimCheckout=await api('claims',{action:'checkout',checkout:{mailFee:fee,paynow:$('checkoutPayNow').value.trim(),pickup:$('checkoutPickup').value.trim(),pickupArea:$('checkoutPickupArea').value.trim(),payMinutes,freeMailFrom,paynowQr:checkoutQr}});fillCheckout();status('Checkout settings saved.');});
 $('claimFilter').onchange=()=>renderClaims();
+for(const b of document.querySelectorAll('[data-claimtab]'))b.onclick=()=>showClaimTab(b.dataset.claimtab);
 $('claimSelectAll').onclick=()=>{for(const s of claimShown())claimPicked.add(s.id);renderClaims();};
 $('claimBulkClear').onclick=()=>{claimPicked.clear();renderClaims();};
 for(const b of claimBulkActions)$(b.id).onclick=()=>task(()=>runClaimBulk(b));
-$('claimCondition').onchange=()=>{$('claimSlabLabel').hidden=$('claimCondition').value!=='Slab';};
-if(claimSubmission?.draft){const d=claimSubmission.draft;$('claimName').value=d.name||'';$('claimCardId').value=d.cardId||'';$('claimCondition').value=d.condition||'NM';$('claimSlab').value=d.slab||'';$('claimSlabLabel').hidden=d.condition!=='Slab';$('claimIncluded').value=d.included||'';$('claimCost').value=money(d.cost);$('claimPrice').value=money(d.price);$('claimTest').checked=!!d.test;}
 $('endSale').onclick=()=>task(async()=>{
  const live=claims.filter(s=>s.status==='open'&&['published','queued'].includes(s.publicationStatus)).length;
  if(!await confirmAction('End the claim sale?','Unsold cards ('+live+') stop taking claims and go back to the Claim queue for the next sale. Buyers with paid cards are asked once: mail (+shipping) or meetup. Unpaid claims keep their 10-minute timer.',[]))return;
@@ -559,19 +582,6 @@ $('saveClaimRoute').onclick=()=>task(async()=>{
  if(!/^https:\/\/t\.me\/(?:c\/\d+|[A-Za-z0-9_]{5,32})\/\d+$/.test(topicLink)&&!/^(?:@|(?:https:\/\/)?t\.me\/)[A-Za-z0-9_]{5,32}\/?$/.test(topicLink)&&!/^-100\d+$/.test(topicLink))throw Error('Paste a channel (@name or t.me/name) or a topic link.');
  await api('claims',{action:'route',topicLink});await loadClaims();status('Saved where claims post.');
 });
-$('claimCreateForm').onsubmit=e=>{e.preventDefault();task(async()=>{
-	if(!claimSubmission){
-	 const name=$('claimName').value.trim(),rawCard=$('claimCardId').value.trim(),cardId=rawCard===''?0:Number(rawCard),cost=cents($('claimCost').value.trim()),price=cents($('claimPrice').value.trim()),condition=$('claimCondition').value,slab=$('claimSlab').value.trim();
-	 if(!name||[...name].length>180)throw Error('Enter a card or lot name up to 180 characters.');
-	 if(!Number.isSafeInteger(cardId)||cardId<0)throw Error('Enter a valid catalogue card ID, or leave it blank.');
-	 if(cost===null||price===null||price<=0)throw Error('Enter valid cost and fixed claim price amounts.');
-	 if(condition==='Slab'&&!slab)throw Error('Enter the slab grade.');
-	 const files=[$('claimFront').files[0],$('claimBack').files[0]],photos=await Promise.all(files.map(file=>file?entryPhoto(file):''));while(photos.length&&!photos.at(-1))photos.pop();
-	 keepClaimSubmission({action:'create',commandKey:newID(),draft:{key:newID(),cardId,name,condition,slab:condition==='Slab'?slab:'',included:$('claimIncluded').value.trim(),cost,price,photos,test:$('claimTest').checked}});
-	}
-	const sale=await api('claims',claimSubmission);keepClaimSubmission(null);const existing=claims.findIndex(row=>row.id===sale.id);if(existing<0)claims.unshift(sale);else claims[existing]=sale;$('claimCreateForm').reset();clearClaimSearch();$('claimSlabLabel').hidden=true;renderClaims();status('Claim sale created and queued for Telegram.');
-});};
-$('claimCreateForm').oninput=e=>{if(!busy&&e.target!==$('claimSearch'))keepClaimSubmission(null);};
 function render(){
  const averages=inventoryAverages();
  $('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
@@ -702,15 +712,6 @@ function bindCatalogueSearch(input,results,selectCard,actionLabel){
  return clearResults;
 }
 const clearNormalResults=bindCatalogueSearch($('search'),$('results'),openQuickEntry,'+ Add card');
-const clearClaimResults=bindCatalogueSearch($('claimSearch'),$('claimResults'),card=>chooseClaimCard(String(card.id),card.name),'Select for claim');
-function clearClaimSearch(){$('claimSearch').value='';clearClaimResults();}
-function chooseClaimCard(id,name=$('claimName').value){
- if(busy)return;
- if($('claimCardId').value!==id||$('claimName').value!==name)keepClaimSubmission(null);
- $('claimCardId').value=id;$('claimName').value=name;clearClaimSearch();$('claimName').focus();
-}
-$('claimSearch').addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault();});
-$('claimCustom').onclick=()=>chooseClaimCard('');
 $('addLinks').onclick=()=>task(async()=>{
  const lines=$('links').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
  if(lines.length>100)throw Error('Add up to 100 links at once.');

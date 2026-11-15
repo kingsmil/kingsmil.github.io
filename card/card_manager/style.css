@@ -100,10 +100,10 @@
 
 /* Claims are their own intake and lifecycle surface. They intentionally do
    not borrow the draft table or normal publication controls. */
-#claimPanel{padding:20px 0}.claimHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.claimHeading h2{margin:0}.claimCreate,#claimRouteSettings,.claimCard{background:#fff;border:1px solid #dce2d6;border-radius:12px;padding:20px;margin:18px 0}.claimFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:14px 0}.claimFields label,.claimCreate>label{display:flex;flex-direction:column;gap:6px}.claimFields input,.claimFields select,.claimCreate textarea{width:100%;box-sizing:border-box}.claimPhotos{display:flex;gap:12px;margin:14px 0}.claimPhotos .filebutton{flex:1;text-align:center}.claimSales{display:grid;gap:14px}.claimCard{margin:0}.claimCardHeading{display:flex;align-items:center;justify-content:space-between;gap:12px}.claimCardHeading h3{font-size:18px;margin:0;overflow-wrap:anywhere}.claimStatus{background:#e7ecdf;border-radius:999px;padding:5px 10px;font-size:12px;white-space:nowrap}.claimActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-@media(max-width:750px){.claimHeading,.claimCardHeading{align-items:stretch;flex-direction:column}.claimPhotos,.claimActions{flex-direction:column}.claimPhotos .filebutton,.claimActions button,#refreshClaims{width:100%;min-height:44px}.claimCreate,#claimRouteSettings,.claimCard{padding:16px}}
+#claimPanel{padding:20px 0}.claimHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.claimHeading h2{margin:0}#claimRouteSettings,.claimCard{background:#fff;border:1px solid #dce2d6;border-radius:12px;padding:20px;margin:18px 0}.claimFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:14px 0}.claimFields label{display:flex;flex-direction:column;gap:6px}.claimFields input,.claimFields select{width:100%;box-sizing:border-box}.claimSales{display:grid;gap:14px}.claimCard{margin:0}.claimCardHeading{display:flex;align-items:center;justify-content:space-between;gap:12px}.claimCardHeading h3{font-size:18px;margin:0;overflow-wrap:anywhere}.claimStatus{background:#e7ecdf;border-radius:999px;padding:5px 10px;font-size:12px;white-space:nowrap}.claimActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+@media(max-width:750px){.claimHeading,.claimCardHeading{align-items:stretch;flex-direction:column}.claimActions{flex-direction:column}.claimActions button,#refreshClaims{width:100%;min-height:44px}#claimRouteSettings,.claimCard{padding:16px}}
 
-.claimSearchRow{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}.claimSearchRow input{flex:1 1 170px;min-width:0}.claimSearchRow button{max-width:100%;min-height:44px}.claimLookup .results{grid-template-columns:minmax(0,1fr)}
+
 
 .claimToolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:18px 0 0}.claimToolbar label{display:flex;flex-direction:column;gap:4px;min-width:0}.claimToolbar select{max-width:100%}
 .claimBulkBar:not([hidden]){position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#f3f7ee;border:1px solid #c9d6bd;border-radius:12px;padding:12px 16px;margin:12px 0}.claimBulkBar strong{margin-right:auto}
@@ -111,7 +111,7 @@
 @media(max-width:750px){.claimToolbar>*,.claimToolbar select,.claimBulkBar button{width:100%;min-height:44px}.claimBulkBar:not([hidden]){position:static}.claimBulkBar strong{width:100%}}
 .claimOrders{margin:18px 0}.claimOrders h2{margin:0}#claimCheckoutSettings{background:#fff;border:1px solid #dce2d6;border-radius:12px;padding:20px;margin:18px 0}#claimCheckoutSettings label{display:flex;flex-direction:column;gap:4px;margin:8px 0}.claimReadyCard{border-color:#c9d6bd;background:#f7faf3}.claimOrderTotal{font-weight:600}.claimAddress{white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:750px){#claimCheckoutSettings{padding:16px}#saveCheckout{width:100%;min-height:44px}}
-.claimCreate>label.check{flex-direction:row;align-items:center;gap:8px;white-space:normal;margin:12px 0;min-height:44px}
+
 .claimOffers{margin-top:12px;border-top:1px solid #e4e9df;padding-top:10px}.claimOffers h4{margin:0 0 6px;font-size:13px}.claimOffer p{margin:4px 0}.claimOffer input{width:120px;min-height:40px}
 
 .buybackReport{margin:12px 0;padding:16px;border:1px solid var(--border,#ccc);border-radius:12px}.buybackReport summary{cursor:pointer;font-weight:600}.buybackReport .totals{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}.buybackReport .stat{flex:1 1 180px}.buybackReport button{margin:6px 8px 0 0}
@@ -164,4 +164,5 @@
  .tabs button:hover{background:#eaf0e5}
  .tabs button.active{border-bottom:0;background:#e7ecdf;color:#254c35;font-weight:700}
 }
+.claimTabs{display:flex;gap:8px;margin:24px 0 0;border-bottom:1px solid #d5ddce;overflow-x:auto}.claimTabs button{border:0;border-radius:0;background:none;padding:14px 16px;color:#758070;flex:0 0 auto;white-space:nowrap}.claimTabs button:hover{background:#eaf0e5}.claimTabs button.active{border-bottom:3px solid #254c35;color:#254c35}.claimTabs span{background:#e7ecdf;padding:2px 7px;border-radius:12px;font-size:11px;margin-left:6px}@media(max-width:750px){.claimTabs button{flex:1;padding:12px 6px;font-size:12px}}
 .saveState{font-size:12px;color:#687461;white-space:nowrap;min-width:8ch}.saveState.saveFailed{color:#a13232;font-weight:600}
