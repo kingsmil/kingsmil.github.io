@@ -19,6 +19,7 @@ let filter = {game: '', condition: '', grades: [], minPrice: 0, maxPrice: 0, sor
 let cartNoteDraft = null, checkoutBusy = false, offersSeq = 0;
 let requestBusy = false, requestAttempt = null;
 let cart = {items: [], total: 0, asking: 0, revision: 0, notes: '', ready: false};
+let giveaway = null;
 let tab = 'browse', sellCard = null, sellPhotos = {front: '', back: '', details: []}, sellUploading = 0, requestCard = null;
 
 const money = cents => 'S$' + (Number(cents || 0) / 100).toFixed(2);
@@ -285,7 +286,7 @@ function closeListing() {
 }
 
 // Panels, including the card view, which is a panel the tabs do not name.
-const panels = ['browse', 'cart', 'sell', 'requests', 'detail'];
+const panels = ['browse', 'cart', 'sell', 'requests', 'giveaway', 'detail'];
 function show(which) {
  status('');
  for (const id of panels) $(id).hidden = id !== which;
@@ -627,6 +628,92 @@ async function loadSubmissions(offset = 0) {
 }
 
 // A session that has gone (expired, or signed out elsewhere) is not something
+// The giveaway is the reason a past customer opens the shop, and opening it
+// is the whole of their part: the server enters an eligible buyer on this
+// load and the page tells them so, with the reason -- they bought from us --
+// and the entry deadline. Who may enter is the server's call; the page only
+// shows it. Every state ends with a way into Browse.
+const dateLabel = iso => new Date(iso).toLocaleString(undefined, {weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+function timeLeft(iso) {
+ const ms = new Date(iso).getTime() - Date.now();
+ if (!(ms > 0)) return '';
+ const minutes = Math.ceil(ms / 60000), hours = Math.floor(minutes / 60), days = Math.floor(hours / 24);
+ if (days > 0) return days + 'd ' + (hours % 24) + 'h left';
+ if (hours > 0) return hours + 'h ' + (minutes % 60) + 'm left';
+ return minutes + 'm left';
+}
+// Taking entries, as far as this page can tell. The server is the judge; the
+// clock here only stops the page promising an entry after the deadline.
+const giveawayOpen = g => !!g && g.status === 'open' && !!timeLeft(g.endsAt);
+function renderGiveaway() {
+ const g = giveaway;
+ $('tabs').querySelector('[data-tab="giveaway"]').hidden = !g;
+ $('giveawayNone').hidden = !!g;
+ $('giveawayCard').hidden = !g;
+ $('giveawayDot').hidden = !(g && g.justEntered);
+ const banner = $('giveawayBanner');
+ banner.hidden = true;
+ if (!g) return;
+ const open = giveawayOpen(g);
+ const left = open ? ' · ' + timeLeft(g.endsAt) : '';
+ // The banner rides above the grid so a buyer who never taps the tab still
+ // learns they are in, and why.
+ if (g.status === 'drawn' && g.won) {
+  banner.hidden = false;
+  $('giveawayBannerTitle').textContent = '🎉 You won the giveaway!';
+  $('giveawayBannerText').textContent = g.title;
+ } else if (open && g.entered) {
+  banner.hidden = false;
+  $('giveawayBannerTitle').textContent = 'You are in the giveaway';
+  $('giveawayBannerText').textContent = (g.customer ? 'Because you have purchased with us' : 'Opening the shop entered you') + left;
+ } else if (open && !g.eligible) {
+  banner.hidden = false;
+  $('giveawayBannerTitle').textContent = 'Giveaway: ' + g.title;
+  $('giveawayBannerText').textContent = 'Buy in a claim sale to get in' + left;
+ }
+ banner.classList.toggle('entered', !banner.hidden && !!g.entered);
+ banner.classList.toggle('fresh', !!g.justEntered);
+ $('giveawayTitle').textContent = g.title;
+ $('giveawayEnds').hidden = g.status === 'drawn';
+ $('giveawayEnds').textContent = open ? 'Entries close ' + dateLabel(g.endsAt) + left : 'Entries closed ' + dateLabel(g.endsAt);
+ $('giveawayDetails').hidden = !g.details;
+ $('giveawayDetails').textContent = g.details || '';
+ let message;
+ if (g.status === 'drawn') {
+  message = g.won ? '🎉 You won! The shop will message you in Telegram to arrange your prize.'
+   : g.entered ? 'The winners have been drawn. Thanks for entering — watch for the next one.'
+   : 'The winners have been drawn.';
+ } else if (!open) {
+  message = g.entered ? 'You are entered. Entries are closed and the draw is coming up.' : 'Entries are closed.';
+ } else if (g.entered) {
+  message = g.customer ? 'You are in. Because you have purchased with us, your entry is locked in — there is nothing else to do.'
+   : 'You are in. Opening the shop entered you — there is nothing else to do.';
+ } else {
+  message = 'This giveaway is for customers. Buy a card in one of our claim sales before entries close, then open the shop again and you are in.';
+ }
+ $('giveawayMessage').textContent = message;
+ $('giveawayCard').classList.toggle('won', g.status === 'drawn' && !!g.won);
+ $('giveawayCard').classList.toggle('entered', !!g.entered && !(g.status === 'drawn' && g.won));
+ $('giveawayBrowse').textContent = g.entered ? 'Browse the shop' : 'Find a card';
+ $('giveawayCount').textContent = g.entries + (g.entries === 1 ? ' entry' : ' entries') + ' so far';
+}
+async function loadGiveaway() {
+ try {
+  giveaway = (await api('giveaway', {})).giveaway || null;
+ } catch (failure) {
+  if (failure.status === 401) return reopen(failure.message);
+  // The shop works without it; a giveaway that failed to load just is not shown.
+  return;
+ }
+ renderGiveaway();
+ if (giveaway && giveaway.justEntered) {
+  try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success'); } catch { /* older clients */ }
+ }
+}
+// The countdown moves while the shop is open, and the page stops promising
+// an entry the moment the deadline passes.
+setInterval(() => { if (giveaway) renderGiveaway(); }, 30000);
+
 // a buyer can fix inside the page: initData is only re-signed by a fresh
 // launch, so the honest answer is to say so.
 function reopen(message) {
@@ -739,8 +826,11 @@ function wireUp() {
    show(button.dataset.tab);
    if (button.dataset.tab === 'cart') { refreshCart(); loadOffers(); }
    if (button.dataset.tab === 'requests') loadSubmissions();
+   if (button.dataset.tab === 'giveaway') loadGiveaway();
   });
  }
+ $('giveawayBanner').addEventListener('click', () => show('giveaway'));
+ $('giveawayBrowse').addEventListener('click', () => show('browse'));
  $('sellCondition').addEventListener('change', () => { $('sellSlabField').hidden = $('sellCondition').value !== 'Slab'; });
  $('requestCondition').addEventListener('change', () => { $('requestSlabField').hidden = $('requestCondition').value !== 'Slab'; });
  catalogue($('sellSearch'), $('sellResults'), entry => {
@@ -792,7 +882,12 @@ async function start() {
   $('tabs').querySelector('[data-tab="sell"]').hidden = role === 'buyer';
   $('gate').hidden = true;
   $('tabs').hidden = false;
-  show('browse');
+  // A giveaway invitation opens the shop on ?tab=giveaway. The grid loads
+  // behind it either way, so Browse is ready the moment they tap it.
+  const wanted = new URLSearchParams(location.search).get('tab');
+  await loadGiveaway();
+  if (!token) return;
+  show(wanted === 'giveaway' && giveaway ? 'giveaway' : 'browse');
   await load(false);
   await refreshCart();
  } catch (failure) {

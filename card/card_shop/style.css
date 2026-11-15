@@ -510,3 +510,41 @@ label textarea { resize: vertical; }
   transition-duration: .001ms !important;
  }
 }
+
+/* The giveaway. The banner rides above the grid only while an entry is
+   waiting to be claimed, and the card on its own tab carries the mark's two
+   colours so it reads as the shop's, not as an advert dropped into it. */
+.giftbanner {
+ display: flex; align-items: center; gap: 12px; width: 100%;
+ margin: 12px 0 2px; padding: 12px 14px; text-align: left;
+ border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line)); border-radius: var(--radius);
+ background: linear-gradient(120deg, color-mix(in srgb, var(--gold) 16%, var(--surface)), color-mix(in srgb, var(--cyan) 12%, var(--surface)));
+ color: var(--text); box-shadow: var(--shadow);
+}
+.giftbanner:active { transform: scale(.99); }
+.gifticon { font-size: 26px; line-height: 1; }
+.gifttext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gifttext strong { font-size: 15px; }
+.gifttext small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.giftgo { color: var(--goldInk); font-size: 24px; line-height: 1; }
+.giftcard {
+ margin-top: 16px; padding: 20px 18px 16px;
+ border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); border-radius: 20px;
+ background:
+  radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--cyan) 18%, transparent), transparent 60%),
+  radial-gradient(100% 70% at 0% 0%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 60%),
+  var(--surface);
+ box-shadow: var(--shadow);
+}
+.giftkicker { color: var(--goldInk); font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.giftcard h2 { font-size: 23px; margin: 6px 0 4px; }
+.giftdetails { white-space: pre-line; margin: 10px 0 0; }
+.giftmessage { margin: 14px 0 4px; font-weight: 600; }
+.giftcard.won .giftmessage { color: var(--goldInk); font-size: 18px; }
+.giftcard.entered .giftmessage::before { content: '✓ '; color: var(--cyanInk); }
+.giftcard .primary, .giftcard .secondary { margin-top: 12px; }
+.giftcard .hint { margin-top: 12px; text-align: center; }
+.giftbanner.entered { border-color: color-mix(in srgb, var(--cyan) 50%, var(--line)); }
+.giftbanner.fresh { animation: giftpop .6s var(--rise); }
+@keyframes giftpop { 0% { transform: scale(.96); opacity: .4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .giftbanner.fresh { animation: none; } }
