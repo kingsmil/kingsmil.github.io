@@ -40,7 +40,7 @@ const filterMatch=(haystack,query)=>{
  const numbers=new Set((text.match(/[0-9]+/g)||[]).map(unpad));
  return terms.every(term=>/^[0-9]+$/.test(term)?(numbers.has(unpad(term))||text.includes(term)):text.includes(term));
 };
-const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.notes||'')+' '+r.cardId+' '+(r.stockId||'');
+const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.notes||'')+(r.reservedName||'')+' '+r.cardId+' '+(r.stockId||'');
 let buybackSelection=0;
 const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
 const money=c=>(Number(c||0)/100).toFixed(2);
@@ -682,6 +682,10 @@ function render(){
   if(r.stockId&&!r.consignment){const details=el('details'),summary=el('summary','Included cards'+(r.included?' · Added':''));details.append(summary);const input=el('textarea');input.value=r.included||'';input.maxLength=1000;input.rows=3;input.placeholder='Charmander, Charmeleon, Charizard';input.setAttribute('aria-label','Included cards');input.disabled=r.sold;input.oninput=()=>change(r,'included',input.value);details.append(input,el('small','Optional. Card names or numbers, separated by commas. Buyers can search these.'));card.append(details);}
   const batch=batchFor(r);if(batch){const badge=el('button','Carousell · '+batch.name+' · '+batch.status,'batchBadge');badge.onclick=()=>{tab='carousell';selected.clear();render();document.getElementById('batch-'+batch.id)?.scrollIntoView({block:'start'});};card.append(badge);}
   const group=averages.get(inventoryGroupKey(r));if(group&&group.count+group.sold>1){const parts=[];if(group.count)parts.push(group.count+' copies · avg cost $'+money(Math.round(group.cost/group.count))+' · avg asking $'+money(Math.round(group.price/group.count)));if(group.sold)parts.push(group.sold+' sold · avg sale $'+money(Math.round(group.sales/group.sold)));card.append(el('small',parts.join(' / '),'groupAverages'));}
+  // Somebody tapped Buy on this card's group post, so it is off the market
+  // until it is paid for or let go. The release is here because the tap was
+  // on a public post and nothing on that post can undo it.
+  if(r.reserved&&!r.sold){const held=el('div',undefined,'heldRow');held.append(el('strong','🔒 Being bought by '+(r.reservedName||'a buyer')),el('small','Send them the bill in Telegram. Release it if they go quiet, and the post offers it again.'));const free=el('button','Release it','releaseHold');free.type='button';free.setAttribute('aria-label','Release '+(r.name||'this card')+' back onto the market');free.onclick=()=>task(()=>releaseHold(r));held.append(free);card.append(held);}
   if(r.sold){const edit=el('button','Sold for S$'+money(r.sale)+' · Edit','editSoldPrice');edit.type='button';edit.setAttribute('aria-label','Edit sold price for '+r.name);edit.onclick=()=>task(()=>editSales([r]));card.append(edit);}
   if(r.costBatchId)card.append(el('small','Buyback · '+r.costBatchLabel+' · batch #'+r.costBatchId));
   if(r.tradeIn)card.append(el('small','Trade received · cost carried forward'));
@@ -984,7 +988,10 @@ function scheduleSave(which=tab){
 }
 async function autosave(which){
  clearTimeout(saveTimer);
- if(busy)return;
+ // A task has the workspace locked. The rows are still dirty and this is
+ // the only timer they have, so it has to be re-armed rather than
+ // dropped: dropping it lost the edit until something else saved.
+ if(busy){scheduleSave(which);return;}
  if(saving){saveAgain=true;return;}
  const rows=savableRows(which);
  if(!rows.length){showSaveState('');return;}
@@ -1148,6 +1155,17 @@ $('sellTogether').onclick=()=>task(async()=>{
  await api('bundle-sale',{rows:rows.map(r=>({stockId:r.stockId,revision:r.revision})),total});
  rows.forEach(r=>dirty.delete(key(r)));await load(true);status(rows.length+' cards sold for SGD '+money(total)+'.');
 });
+// Letting a held card go. One card, one tap, and it asks first: the buyer
+// holding it has been told it is theirs, and they are told again when it is
+// taken back.
+async function releaseHold(row){
+ if(!await confirmAction('Release '+(row.name||'this card')+'?','It goes back on sale, the group post offers it again, and we tell '+(row.reservedName||'the buyer')+' we have let it go.',[row]))return;
+ const out=await api('stock',{action:'unreserve',rows:[payload(row)]});
+ const failed=out.filter(r=>r.error);
+ failed.forEach(f=>{const found=stock.find(x=>x.stockId===f.stockId);if(found)found.error=f.error;});
+ await load(true);render();
+ status(failed.length?failed[0].error:'Released. The post is offering it again.',failed.length>0);
+}
 // Sharing moves a card's cost and takings between columns in the books, so it
 // asks first and says which way the money goes.
 $('share').onclick=()=>task(async()=>{
@@ -1387,7 +1405,7 @@ $('quickAdd').onclick=async()=>{
   const photoIDs=uploads.map(result=>result.value);
   while(photoIDs.length&&!photoIDs.at(-1))photoIDs.pop();
   const row={id:newID(),revision:0,cardId:quickCard.id,name:quickCard.name,condition:quickCondition(),slab:quickType==='slab'?$('quickSlab').value.trim():'',cost:jpy?Math.round(cost/entryRate):cost,price:asking,photos:photoIDs};
-  drafts.push(row);dirty.add(key(row));selected.add(key(row));clearQuickPhotos();$('quickEntry').close();$('filter').value='';inventoryPage=Math.floor((drafts.length-1)/inventoryPageSize);render();$('search').value='';$('results').replaceChildren();$('search').focus();status('Added. Choose the next card, or Submit selected.');
+  drafts.push(row);dirty.add(key(row));selected.add(key(row));scheduleSave('drafts');clearQuickPhotos();$('quickEntry').close();$('filter').value='';inventoryPage=Math.floor((drafts.length-1)/inventoryPageSize);render();$('search').value='';$('results').replaceChildren();$('search').focus();status('Added. Choose the next card, or Submit selected.');
  }catch(e){$('quickError').textContent=e.message;}finally{lock(false);$('quickAdd').disabled=false;$('quickCancel').disabled=false;}
 };
 const marketDialog=el('dialog');marketDialog.id='marketplaceDialog';document.body.append(marketDialog);

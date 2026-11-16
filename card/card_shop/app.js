@@ -19,7 +19,7 @@ let filter = {game: '', condition: '', grades: [], minPrice: 0, maxPrice: 0, sor
 let cartNoteDraft = null, checkoutBusy = false, offersSeq = 0;
 let requestBusy = false, requestAttempt = null;
 let cart = {items: [], total: 0, asking: 0, revision: 0, notes: '', ready: false};
-let giveaway = null;
+let giveaway = null, botName = 'wishrifttcgbot';
 let tab = 'browse', sellCard = null, sellPhotos = {front: '', back: '', details: []}, sellUploading = 0, requestCard = null;
 
 const money = cents => 'S$' + (Number(cents || 0) / 100).toFixed(2);
@@ -38,11 +38,17 @@ const games = {pokemon: {css: 'poke', name: 'Pokémon'}, riftbound: {css: 'rift'
 const photoLabel = i => i === 0 ? 'Front' : i === 1 ? 'Back' : 'Condition detail ' + (i - 1);
 const grade = item => item.condition === 'Slab' ? (item.slab || 'Graded slab') : conditionLabel(item.condition);
 
+// A toast sits over the bottom of the page, where the cart's Send offers
+// button is. It lets taps through, and a confirmation clears itself so it
+// never parks over the next thing to press. Errors stay until replaced.
+let statusTimer = 0;
 function status(text, error) {
  const node = $('status');
+ clearTimeout(statusTimer);
  node.hidden = !text;
  node.textContent = text || '';
  node.classList.toggle('error', !!error);
+ if (text && !error) statusTimer = setTimeout(() => { node.hidden = true; }, 3500);
 }
 function el(tag, text, cls) {
  const node = document.createElement(tag);
@@ -135,6 +141,12 @@ function card(item, priority) {
  if (game) {
   meta.append(' · ');
   meta.appendChild(el('span', game.name, 'game'));
+ }
+ // A held card stays in the grid: it is still what the shop has, and
+ // hiding it would read as sold when it may come back.
+ if (item.held) {
+  node.classList.add('held');
+  frame.appendChild(el('span', 'Being bought', 'pill held'));
  }
  node.append(el('p', item.name, 'name'), meta, el('p', money(item.price), 'price'));
  node.addEventListener('click', () => openListing(item.id));
@@ -268,6 +280,11 @@ async function openListing(id) {
   // say nobody told them.
   $('detailNote').hidden = !open.notes;
   $('detailNote').textContent = open.notes ? '⚠️ ' + open.notes : '';
+  // A card somebody is already buying: the offer field goes, because an
+  // offer on it would be taken for a queue the shop does not keep.
+  $('detailHeld').hidden = !open.held;
+  $('offerBar').hidden = !!open.held;
+  $('offerHint').hidden = !!open.held;
   // An offer already in the cart is what the field starts at, so changing it
   // is an edit rather than a second guess.
   $('offerAmount').value = detail.offer ? (detail.offer / 100).toFixed(2) : '';
@@ -417,7 +434,7 @@ async function checkout() {
  }
 }
 
-const offerState = {received: 'Received', reviewing: 'With shop'};
+const offerState = {received: 'Received', reviewing: 'With shop', withdrawn: 'Withdrawn'};
 async function loadOffers() {
  const seq = ++offersSeq;
  try {
@@ -434,7 +451,32 @@ async function loadOffers() {
    }
    row.appendChild(el('p', offerState[offer.status] || offer.status, 'state'));
    if (offer.notes) row.appendChild(el('p', 'Note: ' + offer.notes, 'meta'));
-   row.appendChild(el('p', 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
+   if (offer.status === 'withdrawn') {
+    row.appendChild(el('p', 'You withdrew this offer.', 'hint'));
+   } else {
+    row.appendChild(el('p', 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
+    // Two taps, no dialog: the first asks, the second withdraws.
+    const take = el('button', 'Withdraw offer', 'secondary');
+    take.type = 'button';
+    take.addEventListener('click', async () => {
+     if (!take.dataset.sure) {
+      take.dataset.sure = '1';
+      take.textContent = 'Tap again to withdraw';
+      take.classList.add('danger');
+      return;
+     }
+     take.disabled = true;
+     try {
+      await api('offer-withdraw', {id: offer.id});
+      status('Offer withdrawn. The shop has been told.');
+      loadOffers();
+     } catch (failure) {
+      take.disabled = false;
+      fail(failure);
+     }
+    });
+    row.appendChild(take);
+   }
    list.appendChild(row);
   }
   $('offersEmpty').hidden = (found.offers || []).length > 0;
@@ -600,7 +642,12 @@ async function loadSubmissions(offset = 0) {
   for (const record of found.submissions || []) {
    const row = el('div', undefined, 'submission');
    row.appendChild(el('p', record.name, 'name'));
-   const parts = [submissionKind[record.kind] || record.kind, grade(record), 'up to ' + money(record.amount)];
+   // A request's amount is the most they will pay. A buyback's is their
+   // market estimate; what they asked us for is the desired payout.
+   const price = record.kind === 'buyback'
+    ? 'asking ' + money(record.ask || record.amount) + (record.ask ? ' · market ' + money(record.amount) : '')
+    : 'up to ' + money(record.amount);
+   const parts = [submissionKind[record.kind] || record.kind, grade(record), price];
    row.appendChild(el('p', parts.join(' · '), 'meta'));
    row.appendChild(el('p', submissionState[record.status] || record.status, 'state'));
    if (record.quote) row.appendChild(el('p', 'The shop offered ' + money(record.quote), 'meta'));
@@ -816,6 +863,16 @@ function wireUp() {
  $('previousPhoto').addEventListener('click', () => { slot -= 1; showPhoto(); });
  $('nextPhoto').addEventListener('click', () => { slot += 1; showPhoto(); });
  $('addToCart').addEventListener('click', addToCart);
+ // Selling to the shop is a guided chat form; this hands over to it.
+ $('sellToUsStart').addEventListener('click', () => {
+  const link = 'https://t.me/' + botName + '?start=buyback';
+  if (tg && tg.openTelegramLink) {
+   tg.openTelegramLink(link);
+   if (tg.close) tg.close();
+  } else {
+   window.location.href = link;
+  }
+ });
  $('openInBot').addEventListener('click', event => {
   if (tg && tg.openTelegramLink && $('openInBot').href) {
    event.preventDefault();
@@ -881,6 +938,7 @@ async function start() {
   const session = await api('login', {initData: tg.initData});
   token = session.token;
   role = session.role || 'buyer';
+  botName = session.bot || botName;
   document.body.dataset.role = role;
   // Listing a card is refused by the server for anyone else, so the tab is
   // shown to the roles that can use it rather than offered and then denied.
