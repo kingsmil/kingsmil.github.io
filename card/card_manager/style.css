@@ -187,3 +187,24 @@
    selected card goes, not which cards are selected. */
 .testRelease{display:block;margin:10px 0;padding:8px 10px;border:1px solid #c9a227;border-radius:8px;background:#fffaea}
 .testRelease small{display:block;margin-top:4px;color:#5a4a16}
+
+/* The inbox reads like a messaging app: who is waiting on the left, the
+   conversation on the right. On a phone the list comes first and the
+   conversation follows it, because picking who to answer comes first. */
+.inboxLayout{display:grid;grid-template-columns:minmax(220px,1fr) 2fr;gap:12px;align-items:start}
+@media(max-width:700px){.inboxLayout{grid-template-columns:1fr}}
+.inboxThreads{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.inboxThread{display:block;width:100%;text-align:left;padding:8px 10px;border:1px solid #d7dde5;border-radius:8px;background:#fff;cursor:pointer}
+.inboxThread:hover{border-color:#9fb0c4}
+.inboxThread.active{border-color:#2d6cdf;box-shadow:inset 3px 0 0 #2d6cdf}
+.inboxThread strong{display:block}
+.inboxThread small{display:block;color:#5c6b7a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inboxThread .unread{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:#2d6cdf;color:#fff;font-size:11px;text-align:center}
+.inboxWho{font-weight:600;margin-bottom:6px}
+.inboxMessages{display:flex;flex-direction:column;gap:6px;min-height:160px;max-height:50vh;overflow:auto;padding:8px;border:1px solid #d7dde5;border-radius:8px;background:#f7f9fc}
+.inboxMessage{max-width:80%;padding:6px 9px;border-radius:10px;background:#fff;border:1px solid #d7dde5}
+.inboxMessage.out{align-self:flex-end;background:#e7f0ff;border-color:#b9d0f5}
+.inboxMessage span{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
+.inboxMessage small{display:block;margin-top:3px;color:#5c6b7a;font-size:11px}
+.inboxReply{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.inboxEmpty{color:#5c6b7a}

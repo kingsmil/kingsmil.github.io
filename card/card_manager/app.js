@@ -2,6 +2,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 let claimDeliveries=[],saleRunning=false,claimOffers=[],claimResult=null, limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
+let inboxUnread=0;
 let batches=[],collections=[],template={},templateDirty=false,entryRate=0,expenses=[],trades=[];
 // The combined inventory is held apart from `stock` on purpose. `stock` is
 // this account's own and every edit path writes to it; these rows belong to
@@ -42,7 +43,7 @@ const filterMatch=(haystack,query)=>{
 };
 const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.notes||'')+(r.reservedName||'')+' '+r.cardId+' '+(r.stockId||'');
 let buybackSelection=0;
-const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
+const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
 const money=c=>(Number(c||0)/100).toFixed(2);
 const newID=()=>Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
 function status(text,error=false){$('status').textContent=text;$('status').style.background=error?'#8b3535':'#253d2c';}
@@ -67,7 +68,7 @@ async function load(preserve=false,initialData){
  const data=initialData||await api('data');limitedSeller=!!data.limitedSeller;$('automationSettings').hidden=false;document.querySelector('[data-tab=expenses]').hidden=limitedSeller;document.querySelector('[data-tab=ledger]').hidden=limitedSeller;document.querySelector('[data-tab=giveaway]').hidden=limitedSeller;document.querySelector('[data-tab=carousell]').hidden=limitedSeller;document.querySelector('[data-tab=central]').hidden=limitedSeller;document.querySelector('[data-tab=claims]').hidden=false;$('claimRouteSettings').hidden=false;$('saveEntryRate').hidden=limitedSeller;$('entryRate').readOnly=limitedSeller;if(limitedSeller&&['carousell','central','claims','expenses','ledger','giveaway'].includes(tab))tab='drafts';
  // A seller must not keep another seller's rows in memory across a sign-out
  // and a sign-in as someone else in the same browser tab.
- if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
+ if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;inboxUnread=data.inboxUnread||0;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
  expenses=data.expenses||[];trades=data.trades||[];renderAccounting();
  const t=data.totals,house=t.House||{},shared=t.Shared||{};$('totals').replaceChildren();
  // The stock figures span every seller. Expenses are the house ledger and
@@ -668,9 +669,9 @@ $('saveClaimRoute').onclick=()=>task(async()=>{
 });
 function render(){
  const averages=inventoryAverages();
- $('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
+ $('inboxCount').textContent=inboxUnread;$('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
  document.querySelectorAll('[data-tab]').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));
- $('batchCount').textContent=batches.length;const isBatch=tab==='carousell',isCentral=tab==='central',isClaim=tab==='claims',isQueue=tab==='queue',isBuyback=tab==='buybacks',isExpenses=tab==='expenses',isLedger=tab==='ledger',isGiveaway=tab==='giveaway',isPanel=isGiveaway||isBatch||isCentral||isClaim||isQueue||isBuyback||isExpenses||isLedger;$('accountingPanel').hidden=!isExpenses;$('ledgerPanel').hidden=!isLedger;if(isLedger)openLedgerTab();$('giveawayPanel').hidden=!isGiveaway;if(isGiveaway){openGiveawayTab();renderGiveaway();}$('queuePanel').hidden=!isQueue;if(isQueue)renderQueue();$('buybackPanel').hidden=!isBuyback;['inventoryToolbar','inventoryTable'].forEach(id=>$(id).hidden=isPanel);$('carousellPanel').hidden=!isBatch;$('centralPanel').hidden=!isCentral;$('claimPanel').hidden=!isClaim;if(isClaim)renderClaims();if(isCentral)renderCentral();$('moveBuyback').hidden=tab!=='stock'&&tab!=='sold';$('makeBatch').hidden=limitedSeller||tab!=='stock';$('unassignedLabel').hidden=limitedSeller||tab!=='stock';if(isBatch){renderCollections();renderBatches();}
+ $('batchCount').textContent=batches.length;const isBatch=tab==='carousell',isCentral=tab==='central',isClaim=tab==='claims',isQueue=tab==='queue',isBuyback=tab==='buybacks',isExpenses=tab==='expenses',isLedger=tab==='ledger',isGiveaway=tab==='giveaway',isInbox=tab==='inbox',isPanel=isGiveaway||isBatch||isCentral||isClaim||isQueue||isBuyback||isExpenses||isLedger||isInbox;$('accountingPanel').hidden=!isExpenses;$('ledgerPanel').hidden=!isLedger;if(isLedger)openLedgerTab();$('giveawayPanel').hidden=!isGiveaway;if(isGiveaway){openGiveawayTab();renderGiveaway();}$('inboxPanel').hidden=!isInbox;if(isInbox)renderInbox();$('queuePanel').hidden=!isQueue;if(isQueue)renderQueue();$('buybackPanel').hidden=!isBuyback;['inventoryToolbar','inventoryTable'].forEach(id=>$(id).hidden=isPanel);$('carousellPanel').hidden=!isBatch;$('centralPanel').hidden=!isCentral;$('claimPanel').hidden=!isClaim;if(isClaim)renderClaims();if(isCentral)renderCentral();$('moveBuyback').hidden=tab!=='stock'&&tab!=='sold';$('makeBatch').hidden=limitedSeller||tab!=='stock';$('unassignedLabel').hidden=limitedSeller||tab!=='stock';if(isBatch){renderCollections();renderBatches();}
  $('saveState').hidden=tab!=='drafts'&&tab!=='stock';$('addPanel').hidden=tab!=='drafts';$('publish').hidden=tab!=='drafts';$('moveToClaims').hidden=tab!=='drafts'&&tab!=='stock';$('sell').hidden=tab==='drafts';$('sell').textContent=tab==='sold'?'Edit sold price':'Mark sold';$('share').hidden=tab!=='stock';$('sellTogether').hidden=tab!=='stock';$('trade').hidden=limitedSeller||tab!=='stock';
  const rows=shown();inventoryPage=Math.min(inventoryPage,Math.max(0,Math.ceil(rows.length/inventoryPageSize)-1));
  $('inventoryPages').hidden=rows.length<=inventoryPageSize;
@@ -716,7 +717,7 @@ function render(){
 document.querySelectorAll('[data-tab]').forEach(n=>n.onclick=()=>{if(limitedSeller&&n.dataset.tab==='central')return;if(saveTimer)autosave(tab);buybackSelection=0;tab=n.dataset.tab;inventoryPage=0;selected.clear();$('filter').value='';$('all').checked=false;
  // Fetched when the tab is first opened rather than at sign-in: it reads every
  // seller's stock, and most visits here never ask for it.
- if(tab==='buybacks')task(loadLots);else if(tab==='central'&&!centralLoaded)task(loadCentral);else if((tab==='claims'||tab==='queue')&&!claimsLoaded)task(loadClaims);else render();});
+ if(tab==='buybacks')task(loadLots);else if(tab==='inbox'&&!inboxLoaded)task(loadInbox);else if(tab==='central'&&!centralLoaded)task(loadCentral);else if((tab==='claims'||tab==='queue')&&!claimsLoaded)task(loadClaims);else render();});
 $('centralSeller').onchange=()=>{centralOwner=$('centralSeller').value;render();};
 $('centralFilter').oninput=()=>renderCentral();
 $('centralRefresh').onclick=()=>task(async()=>{await loadCentral();status('Combined inventory updated.');});
@@ -1604,4 +1605,81 @@ if(telegram?.initData){telegram.ready();telegram.expand();$('telegramLogin').hid
 else task(resumeSession);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&saveTimer)autosave(tab);});
 window.addEventListener('beforeunload',e=>{if(dirty.size||templateDirty){e.preventDefault();e.returnValue='';}});
+// The inbox. Buyers talk to the bot all day; most of it the bot answers
+// itself, and what it could not answer used to sit in a DM nobody on this
+// side could read back. A reply here goes out as the bot, in the
+// conversation they already have open, so they never meet a second voice.
+let inboxThreads=[],inboxMessages=[],inboxWho=0,inboxLoaded=false;
+async function loadInbox(){
+ const {threads}=await api('inbox',{action:'list'});
+ inboxThreads=threads||[];inboxLoaded=true;
+ // The badge counts people, not messages, and now it counts them from the
+ // list in hand rather than the number sign-in happened to send.
+ inboxUnread=inboxThreads.filter(t=>t.unread).length;
+ if(inboxWho&&!inboxThreads.some(t=>t.userId===inboxWho)){inboxWho=0;inboxMessages=[];}
+ renderInbox();
+}
+async function openInboxThread(userId){
+ const out=await api('inbox',{action:'open',userId});
+ inboxWho=userId;inboxMessages=out.messages||[];
+ if(typeof out.unread==='number')inboxUnread=out.unread;
+ const thread=inboxThreads.find(t=>t.userId===userId);if(thread)thread.unread=0;
+ renderInbox();
+}
+// Nobody reads a timestamp to the second in a chat: today is a time of day,
+// anything older is the day it happened.
+const inboxWhen=value=>{
+ const at=new Date(value),now=new Date();
+ return at.toDateString()===now.toDateString()
+  ?at.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+  :at.toLocaleDateString([],{day:'numeric',month:'short'});
+};
+const inboxName=t=>t.name||('Telegram user '+t.userId);
+function renderInbox(){
+ // The badge is drawn here too: render() owns it, and the inbox changes it
+ // without going back through a full redraw of the listing table.
+ $('inboxCount').textContent=inboxUnread;
+ const list=$('inboxThreads');list.replaceChildren();
+ if(!inboxThreads.length)list.append(el('p','Nobody has written to the bot yet.','inboxEmpty'));
+ for(const thread of inboxThreads){
+  const row=el('button',undefined,'inboxThread'+(thread.userId===inboxWho?' active':''));row.type='button';
+  const head=el('strong',inboxName(thread));
+  if(thread.unread)head.append(' ',el('span',String(thread.unread),'unread'));
+  const preview=thread.lastFile?'Sent a photo or file':(thread.last||'');
+  row.append(head,el('small',(thread.incoming?'':'You: ')+preview),el('small',inboxWhen(thread.at)));
+  row.setAttribute('aria-label','Open the conversation with '+inboxName(thread)+(thread.unread?', '+thread.unread+' unread':''));
+  row.onclick=()=>task(()=>openInboxThread(thread.userId));
+  list.append(row);
+ }
+ const who=$('inboxWho'),body=$('inboxMessages');who.replaceChildren();body.replaceChildren();
+ if(!inboxWho){
+  $('inboxReplyForm').hidden=true;
+  body.append(el('p','Pick somebody on the left to read what they said.','inboxEmpty'));
+  return;
+ }
+ const current=inboxThreads.find(t=>t.userId===inboxWho);
+ who.textContent=current?inboxName(current):('Telegram user '+inboxWho);
+ $('inboxReplyForm').hidden=false;
+ if(!inboxMessages.length)body.append(el('p','Nothing in this conversation yet.','inboxEmpty'));
+ for(const m of inboxMessages){
+  const bubble=el('div',undefined,'inboxMessage'+(m.incoming?'':' out'));
+  bubble.append(el('span',m.file?('Sent a photo or file'+(m.body?' · '+m.body:'')):m.body));
+  bubble.append(el('small',(m.incoming?'':'Sent as the bot · ')+inboxWhen(m.at)));
+  body.append(bubble);
+ }
+ body.scrollTop=body.scrollHeight;
+}
+$('refreshInbox').onclick=()=>task(async()=>{inboxLoaded=false;await loadInbox();if(inboxWho)await openInboxThread(inboxWho);status('Inbox refreshed.');});
+$('inboxReplyForm').onsubmit=e=>{e.preventDefault();task(async()=>{
+ const box=$('inboxReply'),text=box.value.trim();
+ if(!text||!inboxWho)return;
+ const out=await api('inbox',{action:'reply',userId:inboxWho,text});
+ // Cleared only once Telegram has taken it: until then this box holds the
+ // only copy of what was written.
+ box.value='';
+ if(out.messages)inboxMessages=out.messages;
+ if(typeof out.unread==='number')inboxUnread=out.unread;
+ await loadInbox();renderInbox();
+ status(out.unrecorded?'Sent, but it could not be saved to the conversation.':'Sent.',!!out.unrecorded);
+});};
 })();
