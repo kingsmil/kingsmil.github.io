@@ -548,3 +548,12 @@ label textarea { resize: vertical; }
 .giftbanner.fresh { animation: giftpop .6s var(--rise); }
 @keyframes giftpop { 0% { transform: scale(.96); opacity: .4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .giftbanner.fresh { animation: none; } }
+/* The shop's note on a card: what the photos do not show. Set apart from
+   the rest of the detail, because a buyer who misses it has grounds to say
+   nobody told them. */
+.listingNote {
+ margin: 6px 0 0; padding: 8px 10px; border-radius: var(--radius);
+ border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+ background: color-mix(in srgb, var(--gold) 12%, var(--surface));
+ color: var(--text); font-size: 13px; line-height: 1.35;
+}

@@ -263,6 +263,11 @@ async function openListing(id) {
   $('detailPrice').textContent = money(open.price);
   $('detailIncluded').hidden = !open.included;
   $('detailIncluded').textContent = open.included ? 'Includes: ' + open.included : '';
+  // The shop's own note on the card: what the photos do not show. It is
+  // set apart from the rest because a buyer who misses it has grounds to
+  // say nobody told them.
+  $('detailNote').hidden = !open.notes;
+  $('detailNote').textContent = open.notes ? '⚠️ ' + open.notes : '';
   // An offer already in the cart is what the field starts at, so changing it
   // is an edit rather than a second guess.
   $('offerAmount').value = detail.offer ? (detail.offer / 100).toFixed(2) : '';
