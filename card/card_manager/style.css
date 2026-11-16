@@ -182,3 +182,8 @@
 .heldRow strong{display:block;font-size:13px;color:#6b4e00}
 .heldRow small{display:block;margin:4px 0 8px;color:#75653a}
 .releaseHold{min-height:34px;font-size:12px}
+
+/* The test switch sits apart from the card list: it changes where every
+   selected card goes, not which cards are selected. */
+.testRelease{display:block;margin:10px 0;padding:8px 10px;border:1px solid #c9a227;border-radius:8px;background:#fffaea}
+.testRelease small{display:block;margin-top:4px;color:#5a4a16}

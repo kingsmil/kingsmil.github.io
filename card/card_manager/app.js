@@ -172,6 +172,12 @@ $('releaseListings').onclick=()=>task(async()=>{
  const {items}=await api('release',{action:'list'});
  const dialog=el('dialog'),title=el('h2','Release listings to Telegram'),hint=el('p','Choose saved listings to queue for Telegram topics, marketplaces and digests. Posting remains paced. Asking prices will not change.');
  const allLabel=el('label',' Select all pending'),all=el('input');all.type='checkbox';allLabel.prepend(all);
+ // A rehearsal. The cards are posted for real, with real buttons, in the
+ // test group -- the only way to know the flow works is to walk it. They
+ // stay out of the shop, the digests and the books, because the prices on
+ // them were made up for the test.
+ const testLabel=el('label',' Release as a test','testRelease'),test=el('input');test.type='checkbox';testLabel.prepend(test);
+ testLabel.append(el('small','Posts to the test group instead. Buyers never see these, and their cost and asking price stay out of your totals.'));
  const list=el('div'),chosen=new Set(),checks=[];
  const send=el('button','Release selected (0)','primary'),cancel=el('button','Cancel');send.disabled=true;
  const update=()=>{send.textContent='Release selected ('+chosen.size+')';send.disabled=!chosen.size;all.checked=items.length>0&&chosen.size===items.length;all.indeterminate=chosen.size>0&&chosen.size<items.length;};
@@ -184,10 +190,10 @@ $('releaseListings').onclick=()=>task(async()=>{
  const cleanup=()=>{dialog.close();dialog.remove();};cancel.onclick=cleanup;dialog.oncancel=e=>{e.preventDefault();cleanup();};
  send.onclick=()=>task(async()=>{
   const ids=[...chosen];send.disabled=true;
-  try {const result=await api('release',{action:'release',ids});cleanup();status(result.released+' listings queued for Telegram.');}
+  try {const result=await api('release',{action:'release',ids,test:test.checked});cleanup();status(result.released+' listings queued for '+(test.checked?'the test group.':'Telegram.'));}
   finally {if(dialog.isConnected)update();}
  });
- dialog.append(title,hint,allLabel,list,cancel,send);document.body.append(dialog);dialog.showModal();
+ dialog.append(title,hint,testLabel,allLabel,list,cancel,send);document.body.append(dialog);dialog.showModal();
 });
 function change(r,field,value){
  r[field]=value;r.error='';
@@ -674,7 +680,7 @@ function render(){
  rows.slice(inventoryPage*inventoryPageSize,(inventoryPage+1)*inventoryPageSize).forEach((r,index)=>{
   const tr=el('tr');tr.dataset.key=key(r);if(dirty.has(key(r)))tr.classList.add('dirty');
   const td=el('td',undefined,'rowSelect'),check=el('input');check.type='checkbox';check.checked=selected.has(key(r));check.setAttribute('aria-label','Select '+r.name);check.onchange=()=>{if(check.checked)selected.add(key(r));else selected.delete(key(r));counts();};td.append(check);tr.append(td);
-  const card=el('td',undefined,'card');card.append(el('strong',r.name||'Unnamed card'),el('small',(r.stockId?'Listing #'+r.stockId:'Row '+(drafts.indexOf(r)+1))+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')));
+  const card=el('td',undefined,'card');card.append(el('strong',(r.test?'[test] ':'')+(r.name||'Unnamed card')),el('small',(r.stockId?'Listing #'+r.stockId:'Row '+(drafts.indexOf(r)+1))+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')+(r.test?' · test only, not for sale and not in your totals':'')));
   if(r.cardId){const isRift=r.cardId>=2000000000;const source=el('a',isRift?'Bilgewater ↗':'SNKRDUNK ↗');source.href=isRift?(r.websiteUrl||'https://bilgewatermarket.com/cards'):('https://snkrdunk.com/apparels/'+r.cardId);source.target='_blank';source.rel='noopener noreferrer';card.append(source);}else{const title=el('input');title.value=r.name;title.maxLength=180;title.setAttribute('aria-label','Custom listing name');title.disabled=r.sold;title.onchange=()=>{r.name=title.value.trim();dirty.add(key(r));render();};card.append(title);}
   // A note travels with the card to every listing it appears on, so it is
   // edited here next to the card rather than per place it is shown.
