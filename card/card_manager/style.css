@@ -172,3 +172,6 @@
 .claimFigures{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .claimFigure{display:flex;flex-direction:column;gap:2px}
 .claimFigure strong{font-size:1.2rem}
+
+.giveawayPanel{padding:20px 0}.giveawayPanel .claimCard{margin:18px 0}.giveawayPanel .totals{margin:18px 0}.giveawayDetails{white-space:pre-line;color:#202923}.giveawayWinners{display:inline-flex;align-items:center;gap:6px}.giveawayWinners input{width:56px}#giveawayAddBox textarea,.giveawayDetailsField textarea{display:block;width:100%;margin:10px 0}.giveawayDetailsField{display:block;margin:0 0 12px}#giveawayForm .check{display:flex;align-items:center;gap:8px;margin:8px 0;white-space:normal}#giveawayLink{color:#376c44;overflow-wrap:anywhere}.giveawayEntries{display:grid;gap:6px}.giveawayEntry{display:flex;justify-content:space-between;gap:12px;background:#fff;border:1px solid #dce2d6;border-radius:10px;padding:10px 14px;font-size:13px}.giveawayEntry a{color:#376c44}.giveawayEntry .hint{margin:0;white-space:nowrap}.giveawayEntry.won{border-color:#c9a227;background:#fffaea}#giveawayStatus.open{background:#dff0e2;color:#1f7a3a}#giveawayStatus.test{background:#fbe7c6}
+@media(max-width:750px){.giveawayEntry{flex-direction:column;gap:2px}.giveawayPanel .claimActions button{width:100%;min-height:44px}}

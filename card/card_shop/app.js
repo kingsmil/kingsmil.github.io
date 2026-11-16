@@ -700,7 +700,7 @@ function renderGiveaway() {
  $('giveawayCard').classList.toggle('won', g.status === 'drawn' && !!g.won);
  $('giveawayCard').classList.toggle('entered', !!g.entered && !(g.status === 'drawn' && g.won));
  $('giveawayBrowse').textContent = g.entered ? 'Browse the shop' : 'Find a card';
- $('giveawayCount').textContent = g.entries + (g.entries === 1 ? ' entry' : ' entries') + ' so far';
+ $('giveawayCount').textContent = g.entries + (g.entries === 1 ? ' entry' : ' entries') + (open ? ' so far' : '');
 }
 async function loadGiveaway() {
  try {
