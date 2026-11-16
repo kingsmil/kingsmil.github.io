@@ -424,6 +424,9 @@ async function checkout() {
   cartNoteDraft = null;
   await refreshCart();
   await loadOffers();
+  // Finishing a purchase is exactly when somebody wonders what else of
+  // theirs is still here, so the list is refreshed with it.
+  await loadHeld();
   status('Offer sent. The shop follows up in Telegram.');
  } catch (failure) {
   fail(failure);
@@ -431,6 +434,38 @@ async function checkout() {
  } finally {
   checkoutBusy = false;
   renderCart();
+ }
+}
+
+// What the shop is still holding, and what the buyer asked us to do
+// with it. Cards stop being visible anywhere once they are paid for:
+// they have left the shop, and a receipt says what was paid, not where
+// the card is. This is the answer to 'what have you still got of mine'.
+const heldPlans = {
+ cardshow: 'Collecting at the next card show',
+ ship: 'To be posted',
+ meetup: 'Meetup being arranged',
+ hold: 'Held for you',
+};
+async function loadHeld() {
+ const list = $('held');
+ try {
+  const found = await api('held', {});
+  const cards = (found.held && found.held.cards) || [];
+  list.textContent = '';
+  $('heldEmpty').hidden = cards.length > 0;
+  for (const card of cards) {
+   const row = el('div', undefined, 'submission');
+   row.appendChild(el('p', card.name, 'name'));
+   row.appendChild(el('p', grade(card) + ' · ' + money(card.price), 'meta'));
+   row.appendChild(el('p', heldPlans[card.choice] || 'Held for you', 'state'));
+   row.appendChild(el('p', 'With us since ' + new Date(card.since).toLocaleDateString(), 'meta'));
+   list.appendChild(row);
+  }
+ } catch (failure) {
+  // A list of what we are holding is not worth breaking the page for.
+  list.textContent = '';
+  $('heldEmpty').hidden = false;
  }
 }
 
@@ -886,7 +921,7 @@ function wireUp() {
  for (const button of document.querySelectorAll('#tabs button')) {
   button.addEventListener('click', () => {
    show(button.dataset.tab);
-   if (button.dataset.tab === 'cart') { refreshCart(); loadOffers(); }
+   if (button.dataset.tab === 'cart') { refreshCart(); loadOffers(); loadHeld(); }
    if (button.dataset.tab === 'requests') loadSubmissions();
    if (button.dataset.tab === 'giveaway') loadGiveaway();
   });

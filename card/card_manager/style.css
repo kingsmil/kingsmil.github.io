@@ -208,3 +208,22 @@
 .inboxMessage small{display:block;margin-top:3px;color:#5c6b7a;font-size:11px}
 .inboxReply{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .inboxEmpty{color:#5c6b7a}
+
+/* The card show list: people, each with the cards we are keeping for
+   them. Wide rows rather than a table, because the card names are long
+   and the names are what anyone packing a box is reading. */
+.holdTabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.holdTabs button{padding:6px 12px;border-radius:999px;border:1px solid var(--line,#d8d8d8);background:var(--card,#fff);font-size:13px}
+.holdTabs button.active{background:var(--accent,#254c35);color:#fff;border-color:var(--accent,#254c35)}
+.holdTabs span{margin-left:6px;opacity:.75}
+.holdPeople{display:flex;flex-direction:column;gap:10px}
+.holdPerson{border:1px solid var(--line,#d8d8d8);border-radius:10px;padding:10px 12px;background:var(--card,#fff)}
+.holdPerson header{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.holdPerson h3{margin:0;font-size:15px}
+.holdPerson .holdSince{font-size:12px;opacity:.7}
+.holdCards{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.holdCards li{display:flex;gap:8px;justify-content:space-between;font-size:13px;padding:4px 0;border-top:1px solid var(--line,#d8d8d8)}
+.holdCards .holdWhere{opacity:.7;font-size:12px}
+.holdActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.holdActions button{font-size:12px;padding:5px 10px}
+.holdEmpty{opacity:.7;font-size:13px;padding:14px 2px}

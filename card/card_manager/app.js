@@ -2,7 +2,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 let claimDeliveries=[],saleRunning=false,claimOffers=[],claimResult=null, limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
-let inboxUnread=0;
+let inboxUnread=0,holdWaiting=0;
 let batches=[],collections=[],template={},templateDirty=false,entryRate=0,expenses=[],trades=[];
 // The combined inventory is held apart from `stock` on purpose. `stock` is
 // this account's own and every edit path writes to it; these rows belong to
@@ -43,7 +43,7 @@ const filterMatch=(haystack,query)=>{
 };
 const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.notes||'')+(r.reservedName||'')+' '+r.cardId+' '+(r.stockId||'');
 let buybackSelection=0;
-const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
+const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox'||tab==='cardshow')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
 const money=c=>(Number(c||0)/100).toFixed(2);
 const newID=()=>Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
 function status(text,error=false){$('status').textContent=text;$('status').style.background=error?'#8b3535':'#253d2c';}
@@ -68,7 +68,7 @@ async function load(preserve=false,initialData){
  const data=initialData||await api('data');limitedSeller=!!data.limitedSeller;$('automationSettings').hidden=false;document.querySelector('[data-tab=expenses]').hidden=limitedSeller;document.querySelector('[data-tab=ledger]').hidden=limitedSeller;document.querySelector('[data-tab=giveaway]').hidden=limitedSeller;document.querySelector('[data-tab=carousell]').hidden=limitedSeller;document.querySelector('[data-tab=central]').hidden=limitedSeller;document.querySelector('[data-tab=claims]').hidden=false;$('claimRouteSettings').hidden=false;$('saveEntryRate').hidden=limitedSeller;$('entryRate').readOnly=limitedSeller;if(limitedSeller&&['carousell','central','claims','expenses','ledger','giveaway'].includes(tab))tab='drafts';
  // A seller must not keep another seller's rows in memory across a sign-out
  // and a sign-in as someone else in the same browser tab.
- if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;inboxUnread=data.inboxUnread||0;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
+ if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;inboxUnread=data.inboxUnread||0;holdWaiting=data.cardshowWaiting||0;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
  expenses=data.expenses||[];trades=data.trades||[];renderAccounting();
  const t=data.totals,house=t.House||{},shared=t.Shared||{};$('totals').replaceChildren();
  // The stock figures span every seller. Expenses are the house ledger and
@@ -669,9 +669,9 @@ $('saveClaimRoute').onclick=()=>task(async()=>{
 });
 function render(){
  const averages=inventoryAverages();
- $('inboxCount').textContent=inboxUnread;$('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
+ $('inboxCount').textContent=inboxUnread;$('cardshowCount').textContent=holdWaiting;$('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
  document.querySelectorAll('[data-tab]').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));
- $('batchCount').textContent=batches.length;const isBatch=tab==='carousell',isCentral=tab==='central',isClaim=tab==='claims',isQueue=tab==='queue',isBuyback=tab==='buybacks',isExpenses=tab==='expenses',isLedger=tab==='ledger',isGiveaway=tab==='giveaway',isInbox=tab==='inbox',isPanel=isGiveaway||isBatch||isCentral||isClaim||isQueue||isBuyback||isExpenses||isLedger||isInbox;$('accountingPanel').hidden=!isExpenses;$('ledgerPanel').hidden=!isLedger;if(isLedger)openLedgerTab();$('giveawayPanel').hidden=!isGiveaway;if(isGiveaway){openGiveawayTab();renderGiveaway();}$('inboxPanel').hidden=!isInbox;if(isInbox)renderInbox();$('queuePanel').hidden=!isQueue;if(isQueue)renderQueue();$('buybackPanel').hidden=!isBuyback;['inventoryToolbar','inventoryTable'].forEach(id=>$(id).hidden=isPanel);$('carousellPanel').hidden=!isBatch;$('centralPanel').hidden=!isCentral;$('claimPanel').hidden=!isClaim;if(isClaim)renderClaims();if(isCentral)renderCentral();$('moveBuyback').hidden=tab!=='stock'&&tab!=='sold';$('makeBatch').hidden=limitedSeller||tab!=='stock';$('unassignedLabel').hidden=limitedSeller||tab!=='stock';if(isBatch){renderCollections();renderBatches();}
+ $('batchCount').textContent=batches.length;const isBatch=tab==='carousell',isCentral=tab==='central',isClaim=tab==='claims',isQueue=tab==='queue',isBuyback=tab==='buybacks',isExpenses=tab==='expenses',isLedger=tab==='ledger',isGiveaway=tab==='giveaway',isInbox=tab==='inbox',isShow=tab==='cardshow',isPanel=isGiveaway||isBatch||isCentral||isClaim||isQueue||isBuyback||isExpenses||isLedger||isInbox||isShow;$('accountingPanel').hidden=!isExpenses;$('ledgerPanel').hidden=!isLedger;if(isLedger)openLedgerTab();$('giveawayPanel').hidden=!isGiveaway;if(isGiveaway){openGiveawayTab();renderGiveaway();}$('inboxPanel').hidden=!isInbox;if(isInbox)renderInbox();$('cardshowPanel').hidden=!isShow;if(isShow)renderCardshow();$('queuePanel').hidden=!isQueue;if(isQueue)renderQueue();$('buybackPanel').hidden=!isBuyback;['inventoryToolbar','inventoryTable'].forEach(id=>$(id).hidden=isPanel);$('carousellPanel').hidden=!isBatch;$('centralPanel').hidden=!isCentral;$('claimPanel').hidden=!isClaim;if(isClaim)renderClaims();if(isCentral)renderCentral();$('moveBuyback').hidden=tab!=='stock'&&tab!=='sold';$('makeBatch').hidden=limitedSeller||tab!=='stock';$('unassignedLabel').hidden=limitedSeller||tab!=='stock';if(isBatch){renderCollections();renderBatches();}
  $('saveState').hidden=tab!=='drafts'&&tab!=='stock';$('addPanel').hidden=tab!=='drafts';$('publish').hidden=tab!=='drafts';$('moveToClaims').hidden=tab!=='drafts'&&tab!=='stock';$('sell').hidden=tab==='drafts';$('sell').textContent=tab==='sold'?'Edit sold price':'Mark sold';$('share').hidden=tab!=='stock';$('sellTogether').hidden=tab!=='stock';$('trade').hidden=limitedSeller||tab!=='stock';
  const rows=shown();inventoryPage=Math.min(inventoryPage,Math.max(0,Math.ceil(rows.length/inventoryPageSize)-1));
  $('inventoryPages').hidden=rows.length<=inventoryPageSize;
@@ -717,7 +717,7 @@ function render(){
 document.querySelectorAll('[data-tab]').forEach(n=>n.onclick=()=>{if(limitedSeller&&n.dataset.tab==='central')return;if(saveTimer)autosave(tab);buybackSelection=0;tab=n.dataset.tab;inventoryPage=0;selected.clear();$('filter').value='';$('all').checked=false;
  // Fetched when the tab is first opened rather than at sign-in: it reads every
  // seller's stock, and most visits here never ask for it.
- if(tab==='buybacks')task(loadLots);else if(tab==='inbox'&&!inboxLoaded)task(loadInbox);else if(tab==='central'&&!centralLoaded)task(loadCentral);else if((tab==='claims'||tab==='queue')&&!claimsLoaded)task(loadClaims);else render();});
+ if(tab==='buybacks')task(loadLots);else if(tab==='inbox'&&!inboxLoaded)task(loadInbox);else if(tab==='cardshow'&&!holdLoaded)task(loadCardshow);else if(tab==='central'&&!centralLoaded)task(loadCentral);else if((tab==='claims'||tab==='queue')&&!claimsLoaded)task(loadClaims);else render();});
 $('centralSeller').onchange=()=>{centralOwner=$('centralSeller').value;render();};
 $('centralFilter').oninput=()=>renderCentral();
 $('centralRefresh').onclick=()=>task(async()=>{await loadCentral();status('Combined inventory updated.');});
@@ -1682,4 +1682,84 @@ $('inboxReplyForm').onsubmit=e=>{e.preventDefault();task(async()=>{
  await loadInbox();renderInbox();
  status(out.unrecorded?'Sent, but it could not be saved to the conversation.':'Sent.',!!out.unrecorded);
 });};
+
+// The card show list. Cards that are paid for and still here: what we are
+// bringing to the show, what is waiting to be posted, who wants a meetup,
+// and what somebody has simply left with us.
+//
+// One list, read four ways. Every card carries the choice its owner made,
+// so moving a card between the four is a change to the card, not a move
+// between lists.
+let holdPeople=[],holdCounts={},holdChoice='cardshow',holdLoaded=false;
+const holdNames={cardshow:'Collecting at the show',ship:'To post',meetup:'Meetups',hold:'Held'};
+async function loadCardshow(){
+ const out=await api('cardshow',{action:'list'});
+ holdPeople=out.held||[];holdCounts=out.counts||{};holdLoaded=true;
+ renderCardshow();
+}
+// Whoever has waited longest is already first from the server, and that
+// order is kept: it is the order anyone packing a box works in.
+const holdShown=()=>holdPeople
+  .map(p=>({...p,cards:(p.cards||[]).filter(c=>c.choice===holdChoice)}))
+  .filter(p=>p.cards.length);
+const holdSince=value=>{
+ const days=Math.floor((Date.now()-new Date(value).getTime())/86400000);
+ if(days<1)return 'since today';
+ if(days===1)return 'since yesterday';
+ if(days<31)return 'waiting '+days+' days';
+ return 'waiting '+Math.floor(days/30)+' month'+(days<60?'':'s');
+};
+const holdWho=p=>p.buyerName||('Telegram user '+p.buyerId);
+function renderCardshow(){
+ for(const choice of ['cardshow','ship','meetup','hold']){
+  const badge=$('holdCount'+choice[0].toUpperCase()+choice.slice(1));
+  if(badge)badge.textContent=holdCounts[choice]||0;
+  const pick=$('holdPick'+choice[0].toUpperCase()+choice.slice(1));
+  if(pick)pick.classList.toggle('active',choice===holdChoice);
+ }
+ holdWaiting=holdCounts.cardshow||0;$('cardshowCount').textContent=holdWaiting;
+ const list=$('cardshowPeople');list.replaceChildren();
+ const people=holdShown();
+ if(!people.length){list.append(el('p','Nothing waiting under '+holdNames[holdChoice].toLowerCase()+'.','holdEmpty'));return;}
+ for(const person of people){
+  const box=el('div',undefined,'holdPerson'),head=el('header');
+  const total=person.cards.reduce((n,c)=>n+(c.price||0),0);
+  head.append(el('h3',holdWho(person)),el('span',person.cards.length+' card'+(person.cards.length===1?'':'s')+' · '+money(total)+' · '+holdSince(person.since),'holdSince'));
+  const cards=el('ul',undefined,'holdCards');
+  for(const card of person.cards){
+   const row=el('li');
+   row.append(el('span',card.name+(card.slab?' · '+card.slab:'')+(card.condition?' · '+card.condition:'')));
+   row.append(el('span',(card.source==='claim'?'claim sale':'shop'),'holdWhere'));
+   cards.append(row);
+  }
+  const actions=el('div',undefined,'holdActions');
+  // Handing them over is the common one, so it leads and the rest are
+  // the places a card can be moved to instead.
+  const done=el('button','Handed over');done.type='button';done.className='primary';
+  done.onclick=()=>task(async()=>{
+   const out=await api('cardshow',{action:'collected',buyerId:person.buyerId,how:holdChoice,cards:person.cards.map(c=>c.stockId)});
+   holdPeople=out.held||[];holdCounts=out.counts||{};renderCardshow();
+   status(person.cards.length+' card(s) out of the box for '+holdWho(person)+'.');
+  });
+  actions.append(done);
+  for(const choice of ['cardshow','ship','meetup','hold']){
+   if(choice===holdChoice)continue;
+   const move=el('button','Move to '+holdNames[choice].toLowerCase());move.type='button';
+   move.onclick=()=>task(async()=>{
+    const out=await api('cardshow',{action:'choice',buyerId:person.buyerId,choice,cards:person.cards.map(c=>c.stockId)});
+    holdPeople=out.held||[];holdCounts=out.counts||{};renderCardshow();
+    status('Moved to '+holdNames[choice].toLowerCase()+'.');
+   });
+   actions.append(move);
+  }
+  box.append(head,cards,actions);
+  list.append(box);
+ }
+}
+for(const choice of ['cardshow','ship','meetup','hold']){
+ const pick=$('holdPick'+choice[0].toUpperCase()+choice.slice(1));
+ if(pick)pick.onclick=()=>{holdChoice=choice;renderCardshow();};
+}
+$('refreshCardshow').onclick=()=>task(async()=>{holdLoaded=false;await loadCardshow();status('Card show list refreshed.');});
+
 })();
