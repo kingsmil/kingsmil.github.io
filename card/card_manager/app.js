@@ -81,6 +81,16 @@ async function load(preserve=false,initialData){
  for(const [label,value] of [['Inventory cost',t.InventoryCost],['Sales',t.Revenue],['Gross margin',t.Revenue-t.SoldCost-(t.ConsignmentPayout||0)],['Stock cost basis',t.Spent],['House net profit',(house.Revenue||0)-(house.SoldCost||0)-(house.ConsignmentPayout||0)-(t.Expenses||0)],['Expenses (house)',t.Expenses||0],...(shared.Units?[['Shared stock cost',shared.InventoryCost||0],['Shared gross margin',(shared.Revenue||0)-(shared.SoldCost||0)-(shared.ConsignmentPayout||0)]]:[])]){
   const card=el('div',undefined,'stat');card.append(el('span',label),el('strong','$'+money(value)));$('totals').append(card);
  }
+ // The tabs under these figures are not the same shop. Another seller's
+ // stock and a claim sale's cards are counted here and listed nowhere
+ // below; a rehearsal is listed below and counted in neither. Saying so
+ // is what lets a walk be checked against every total being back where
+ // it started -- without it, an afternoon goes into a 7.19 nobody moved.
+ const listed=stock.filter(r=>!r.test).length,rehearsals=stock.length-listed,elsewhere=Math.max(0,(t.Units||0)-listed);
+ $('totalsScope').textContent=[limitedSeller?'These figures are your own stock, rehearsals left out.'
+  :'These figures are the whole shop: '+count(t.Units||0,'card')+' across every seller and sale mode, rehearsals left out.',
+  limitedSeller||!elsewhere?'':elsewhere+' of them '+(elsewhere===1?'is':'are')+' not in the tabs below.',
+  rehearsals?count(rehearsals,'rehearsal')+' listed below '+(rehearsals===1?'is':'are')+' in neither.':''].filter(Boolean).join(' ');
  pending.forEach(r=>{const target=r.stockId?stock:drafts;const index=target.findIndex(x=>key(x)===key(r));if(index<0)target.push(r);else target[index]=r;dirty.add(key(r));});
  render();
 }
@@ -251,7 +261,7 @@ function photoCell(r,i,load=true){
  td.className=i===0?'frontPhoto':i===1?'backPhoto':'cornerPhoto';td.append(label);if(id&&!r.sold&&!r.consignment){const rotate=el('button','Rotate ↻','rotatePhoto');rotate.type='button';rotate.setAttribute('aria-label','Rotate '+photoLabel(i)+' 90 degrees');rotate.onclick=()=>task(async()=>{const result=await api('rotate',{photo:id,degrees:90});const updated=[...(r.photos||[])];updated[i]=result.photo;change(r,'photos',updated);render();status('Photo rotated. Save the row to keep it.');});td.append(rotate);}return td;
 }
 function inventoryGroupKey(r){return [r.cardId===0?'custom:'+r.name.trim().toLowerCase():r.cardId,r.condition,r.condition==='Slab'?(r.slab||'').trim().toUpperCase():''].join('|');}
-function inventoryAverages(){const groups=new Map();for(const r of [...stock,...drafts]){const k=inventoryGroupKey(r),g=groups.get(k)||{count:0,cost:0,price:0,sold:0,sales:0};if(r.sold){g.sold++;g.sales+=r.sale||0;}else{g.count++;g.cost+=r.cost;g.price+=r.price;}groups.set(k,g);}return groups;}
+function inventoryAverages(){const groups=new Map();for(const r of [...stock,...drafts].filter(r=>!r.test)){const k=inventoryGroupKey(r),g=groups.get(k)||{count:0,cost:0,price:0,sold:0,sales:0};if(r.sold){g.sold++;g.sales+=r.sale||0;}else{g.count++;g.cost+=r.cost;g.price+=r.price;}groups.set(k,g);}return groups;}
 const claimStatusLabel=value=>({open:'Open',pending_approval:'Pending approval',awaiting_payment:'Awaiting PayNow',paid:'Paid',shipped:'Shipped',converted:'Converted'})[value]||value;
 const claimPublicationLabel=value=>({queued:'Queued for Telegram',sending:'Sending to Telegram',published:'Live in Telegram',uncertain:'Needs publication review',retired:'Publication closed'})[value]||value;
 async function loadClaims(){
@@ -698,8 +708,11 @@ $('saveClaimRoute').onclick=()=>task(async()=>{
  await api('claims',{action:'route',topicLink});await loadClaims();status('Saved where claims post.');
 });
 function render(){
+ // A rehearsal is listed in these tabs so somebody can clean it up, and
+ // left out of their counts so it cannot nudge Available the way it did
+ // on 17 Nov. The figures above it have never counted one.
  const averages=inventoryAverages();
- $('inboxCount').textContent=inboxUnread;$('cardshowCount').textContent=holdWaiting;$('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold).length;$('soldCount').textContent=stock.filter(r=>r.sold).length;
+ $('inboxCount').textContent=inboxUnread;$('cardshowCount').textContent=holdWaiting;$('draftCount').textContent=drafts.length;$('stockCount').textContent=stock.filter(r=>!r.sold&&!r.test).length;$('soldCount').textContent=stock.filter(r=>r.sold&&!r.test).length;
  document.querySelectorAll('[data-tab]').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));
  $('batchCount').textContent=batches.length;const isBatch=tab==='carousell',isCentral=tab==='central',isClaim=tab==='claims',isQueue=tab==='queue',isBuyback=tab==='buybacks',isExpenses=tab==='expenses',isLedger=tab==='ledger',isGiveaway=tab==='giveaway',isInbox=tab==='inbox',isShow=tab==='cardshow',isPanel=isGiveaway||isBatch||isCentral||isClaim||isQueue||isBuyback||isExpenses||isLedger||isInbox||isShow;$('accountingPanel').hidden=!isExpenses;$('ledgerPanel').hidden=!isLedger;if(isLedger)openLedgerTab();$('giveawayPanel').hidden=!isGiveaway;if(isGiveaway){openGiveawayTab();renderGiveaway();}$('inboxPanel').hidden=!isInbox;if(isInbox)renderInbox();$('cardshowPanel').hidden=!isShow;if(isShow)renderCardshow();$('queuePanel').hidden=!isQueue;if(isQueue)renderQueue();$('buybackPanel').hidden=!isBuyback;['inventoryToolbar','inventoryTable'].forEach(id=>$(id).hidden=isPanel);$('carousellPanel').hidden=!isBatch;$('centralPanel').hidden=!isCentral;$('claimPanel').hidden=!isClaim;if(isClaim)renderClaims();if(isCentral)renderCentral();$('moveBuyback').hidden=tab!=='stock'&&tab!=='sold';$('makeBatch').hidden=limitedSeller||tab!=='stock';$('unassignedLabel').hidden=limitedSeller||tab!=='stock';if(isBatch){renderCollections();renderBatches();}
  $('saveState').hidden=tab!=='drafts'&&tab!=='stock';$('addPanel').hidden=tab!=='drafts';$('publish').hidden=tab!=='drafts';$('moveToClaims').hidden=tab!=='drafts'&&tab!=='stock';$('sell').hidden=tab==='drafts';$('sell').textContent=tab==='sold'?'Edit sold price':'Mark sold';$('share').hidden=tab!=='stock';$('sellTogether').hidden=tab!=='stock';$('trade').hidden=limitedSeller||tab!=='stock';
