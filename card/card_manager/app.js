@@ -712,7 +712,7 @@ function render(){
   const tr=el('tr');tr.dataset.key=key(r);if(dirty.has(key(r)))tr.classList.add('dirty');
   const td=el('td',undefined,'rowSelect'),check=el('input');check.type='checkbox';check.checked=selected.has(key(r));check.setAttribute('aria-label','Select '+r.name);check.onchange=()=>{if(check.checked)selected.add(key(r));else selected.delete(key(r));counts();};td.append(check);tr.append(td);
   const card=el('td',undefined,'card');card.append(el('strong',(r.test?'[test] ':'')+(r.name||'Unnamed card')),el('small',(r.stockId?'Listing #'+r.stockId:'Row '+(drafts.indexOf(r)+1))+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')+(r.test?' · test only, not for sale and not in your totals':'')));
-  if(r.cardId){const isRift=r.cardId>=2000000000;const source=el('a',isRift?'Bilgewater ↗':'SNKRDUNK ↗');source.href=isRift?(r.websiteUrl||'https://bilgewatermarket.com/cards'):('https://snkrdunk.com/apparels/'+r.cardId);source.target='_blank';source.rel='noopener noreferrer';card.append(source);}else{const title=el('input');title.value=r.name;title.maxLength=180;title.setAttribute('aria-label','Custom listing name');title.disabled=r.sold;title.onchange=()=>{r.name=title.value.trim();dirty.add(key(r));render();};card.append(title);}
+  if(r.cardId){const isRift=r.cardId>=2000000000;const source=el('a',isRift?'Bilgewater ↗':'SNKRDUNK ↗');source.href=isRift?(r.websiteUrl||'https://bilgewatermarket.com/cards'):('https://snkrdunk.com/apparels/'+r.cardId);source.target='_blank';source.rel='noopener noreferrer';card.append(source);}else{const title=el('input');title.value=r.name;title.maxLength=180;title.setAttribute('aria-label','Custom listing name');title.disabled=r.sold;title.onchange=()=>{r.name=title.value.trim();dirty.add(key(r));render();};card.append(title);card.append(gameSelect(r));}
   // A note travels with the card to every listing it appears on, so it is
   // edited here next to the card rather than per place it is shown.
   {const details=el('details'),summary=el('summary','Note'+(r.notes?' · '+r.notes.slice(0,40):''));details.append(summary);const input=el('textarea');input.value=r.notes||'';input.maxLength=300;input.rows=2;input.placeholder='Back has light edge whitening';input.setAttribute('aria-label','Note on '+(r.name||'this card'));input.disabled=r.sold;input.oninput=()=>change(r,'notes',input.value);details.append(input,el('small','Optional, and buyers see it. For what the photos do not show — edge wear, a print line, a crease.'));card.append(details);}
@@ -981,7 +981,11 @@ $('bulkPhotos').onchange=()=>task(async()=>{
  render();$('bulkPhotos').value='';status(count+' photos matched.'+(errors.length?' Could not match: '+errors.join(', '):''),errors.length>0);
 });
 function picked(){const rows=(tab==='drafts'?drafts:stock).filter(r=>selected.has(key(r)));if(!rows.length)throw Error('Select at least one row.');if(rows.length>100)throw Error('Select up to 100 rows.');return rows;}
-function payload(r){const out={id:r.id||'',revision:r.revision,cardId:r.cardId,name:r.name,condition:r.condition,slab:r.slab||'',cost:r.cost,price:r.price,photos:r.photos||[],notes:r.notes||''};if(r.stockId){out.included=r.included||'';out.stockId=r.stockId;out.sold=r.sold;out.sale=r.sale||0;out.consignment=r.consignment;}return out;}
+// A custom listing has no catalogue card to name its game, so the shop filter
+// and the Telegram topic it posts to follow this choice. An unset one is
+// treated as Pokémon, as before.
+function gameSelect(r){const sel=el('select');sel.setAttribute('aria-label','Game for '+r.name);for(const [v,t] of [['pokemon','Pokémon'],['riftbound','Riftbound']]){const o=el('option',t);o.value=v;sel.append(o);}sel.value=r.game||'pokemon';sel.disabled=!!r.sold||!!r.consignment;if(sel.disabled)sel.dataset.fixed='true';sel.onchange=()=>change(r,'game',sel.value);return sel;}
+function payload(r){const out={id:r.id||'',revision:r.revision,cardId:r.cardId,name:r.name,condition:r.condition,slab:r.slab||'',cost:r.cost,price:r.price,photos:r.photos||[],notes:r.notes||'',game:r.cardId?'':(r.game||'')};if(r.stockId){out.included=r.included||'';out.stockId=r.stockId;out.sold=r.sold;out.sale=r.sale||0;out.consignment=r.consignment;}return out;}
 async function saveRows(rows,which=tab,redraw=true){
  validateRows(rows);
  const sent=structuredClone(rows.map(payload));
@@ -1338,7 +1342,7 @@ function updateQuick(){
 }
 function clearQuickPhotos(){quickPhotosState={};for(const side of ['Front','Back'])$('quick'+side+'Rotate').hidden=true;quickURLs.forEach(URL.revokeObjectURL);quickURLs=[];for(const side of ['Front','Back']){$('quick'+side).value='';$('quick'+side+'Preview').hidden=true;$('quick'+side+'Preview').removeAttribute('src');}}
 function openQuickEntry(card){
- quickCard=card;$('quickCustomLabel').hidden=card.id!==0;$('quickCustomName').value=card.id===0?card.name:'';quickPriceManual=false;clearQuickPhotos();$('quickName').textContent=card.name||'Custom listing / set';$('quickCost').value='';$('quickError').textContent='';
+ quickCard=card;$('quickCustomLabel').hidden=card.id!==0;$('quickGameLabel').hidden=card.id!==0;$('quickGame').value='pokemon';$('quickCustomName').value=card.id===0?card.name:'';quickPriceManual=false;clearQuickPhotos();$('quickName').textContent=card.name||'Custom listing / set';$('quickCost').value='';$('quickError').textContent='';
  const matches=quickMatches();$('quickPrice').value=matches.length?money(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';
  quickType='';$('quickTypeStep').hidden=false;$('quickDetails').hidden=true;$('quickAdd').hidden=true;
  const img=$('quickReference');img.hidden=true;img.removeAttribute('src');img.onerror=()=>{img.hidden=true;};if(card.brandId==='riftbound'&&!card.thumbnailUrl){referenceURL(card).then(url=>{if(url&&quickCard===card&&$('quickEntry').open){img.src=url;img.hidden=false;}});}
@@ -1441,7 +1445,7 @@ $('quickAdd').onclick=async()=>{
   const failure=uploads.find(result=>result.status==='rejected');if(failure)throw failure.reason;
   const photoIDs=uploads.map(result=>result.value);
   while(photoIDs.length&&!photoIDs.at(-1))photoIDs.pop();
-  const row={id:newID(),revision:0,cardId:quickCard.id,name:quickCard.name,condition:quickCondition(),slab:quickType==='slab'?$('quickSlab').value.trim():'',cost:jpy?Math.round(cost/entryRate):cost,price:asking,photos:photoIDs};
+  const row={id:newID(),revision:0,cardId:quickCard.id,game:quickCard.id===0?$('quickGame').value:'',name:quickCard.name,condition:quickCondition(),slab:quickType==='slab'?$('quickSlab').value.trim():'',cost:jpy?Math.round(cost/entryRate):cost,price:asking,photos:photoIDs};
   drafts.push(row);dirty.add(key(row));selected.add(key(row));scheduleSave('drafts');clearQuickPhotos();$('quickEntry').close();$('filter').value='';inventoryPage=Math.floor((drafts.length-1)/inventoryPageSize);render();$('search').value='';$('results').replaceChildren();$('search').focus();status('Added. Choose the next card, or Submit selected.');
  }catch(e){$('quickError').textContent=e.message;}finally{lock(false);$('quickAdd').disabled=false;$('quickCancel').disabled=false;}
 };
