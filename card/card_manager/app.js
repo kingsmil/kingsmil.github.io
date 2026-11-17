@@ -1,6 +1,9 @@
 'use strict';
 (() => {
 const $=id=>document.getElementById(id);
+// One card is "1 card", not "1 cards". The manager counts things out loud
+// in a dozen places and every one of them read like a machine.
+const count=(n,one,many)=>n+' '+(n===1?one:(many||one+'s'));
 let claimDeliveries=[],saleRunning=false,claimOffers=[],claimResult=null, claimTestRoutes=[], limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
 let inboxUnread=0,holdWaiting=0;
 let batches=[],collections=[],template={},templateDirty=false,entryRate=0,expenses=[],trades=[];
@@ -191,7 +194,7 @@ $('releaseListings').onclick=()=>task(async()=>{
  const cleanup=()=>{dialog.close();dialog.remove();};cancel.onclick=cleanup;dialog.oncancel=e=>{e.preventDefault();cleanup();};
  send.onclick=()=>task(async()=>{
   const ids=[...chosen];send.disabled=true;
-  try {const result=await api('release',{action:'release',ids,test:test.checked});cleanup();status(result.released+' listings queued for '+(test.checked?'the test group.':'Telegram.'));}
+  try {const result=await api('release',{action:'release',ids,test:test.checked});cleanup();status(count(result.released,'listing')+' queued for '+(test.checked?'the test group.':'Telegram.'));}
   finally {if(dialog.isConnected)update();}
  });
  dialog.append(title,hint,testLabel,allLabel,list,cancel,send);document.body.append(dialog);dialog.showModal();
@@ -1068,13 +1071,13 @@ $('moveToClaims').onclick=()=>task(async()=>{const rows=picked();if(!rows.length
 $('publish').onclick=()=>task(async()=>{
  const rows=picked();if(!await saveRows(rows)){status('Fix the highlighted rows first.',true);return;}
  const invalid=rows.filter(r=>r.price<=0||![0,1,2,10].includes(r.photos.length)||(r.photos.length!==2&&r.photos.some(p=>!p)));if(invalid.length)throw Error('Each card needs an asking price. Photos are optional.');
- if(!await confirmAction('Publish '+rows.length+' listings?','These will appear in the shop. Telegram posts wait until you release them. Costs stay private.',rows))return;
+ if(!await confirmAction('Publish '+count(rows.length,'listing')+'?','These will appear in the shop. Telegram posts wait until you release them. Costs stay private.',rows))return;
  const result=await api('publish',{rows:rows.map(payload)});const failures=new Set(result.filter(r=>r.error).map(r=>r.id));
  result.forEach((r,i)=>{if(r.error)rows[i].error=r.error;});
  const failed=rows.filter(r=>failures.has(r.id));
  await load(true);
  failed.forEach(r=>{const d=drafts.find(d=>d.id===r.id);if(d)d.error=r.error;});render();
- status((rows.length-failures.size)+' listings added to the shop; awaiting Telegram release.'+(failures.size?' Some rows failed; check messages.':''),failures.size>0);
+ status(count(rows.length-failures.size,'listing')+' added to the shop; awaiting Telegram release.'+(failures.size?' Some rows failed; check messages.':''),failures.size>0);
 });
 
 async function loadCentral(){
@@ -1218,7 +1221,7 @@ async function editSales(rows){
  });
  if(!prices)return;
  const preview=rows.map((r,i)=>({...r,sale:prices[i]}));
- if(!await confirmAction(correcting?'Update sold prices?':'Mark '+rows.length+' cards sold?',correcting?'Updates sales totals and profit. Cards stay sold.':'Check your actual sale prices below. Topic posts will be retired.',preview))return;
+ if(!await confirmAction(correcting?'Update sold prices?':'Mark '+count(rows.length,'card')+' sold?',correcting?'Updates sales totals and profit. Cards stay sold.':'Check your actual sale prices below. Topic posts will be retired.',preview))return;
  rows.forEach((r,i)=>{r.sale=prices[i];r.saleDirty=true;dirty.add(key(r));});
  const edits=rows.filter(r=>r.stockDirty&&!r.sold&&!r.consignment);
  if(edits.length&&!await saveRows(edits)){status('Fix the row errors before recording sales.',true);return;}
@@ -1234,7 +1237,7 @@ $('remove').onclick=()=>task(async()=>{
  const failures=new Set(result.filter(r=>r.error).map(r=>r.id||'stock:'+r.stockId));
  rows.forEach(r=>{if(!failures.has(key(r))){if(tab==='drafts')drafts=drafts.filter(d=>d!==r);else stock=stock.filter(d=>d!==r);selected.delete(key(r));dirty.delete(key(r));}});
  result.forEach(r=>{if(r.error){const row=rows.find(x=>key(x)===(r.stockId?'stock:'+r.stockId:r.id));if(row){row.error=r.error;dirty.add(key(row));}}});
- await load(true);failures.forEach(k=>selected.add(k));render();status(failures.size?'Some rows could not be deleted. Refresh and review.':'Deleted selected rows.',failures.size>0);
+ await load(true);failures.forEach(k=>selected.add(k));render();status(failures.size?'Some rows could not be deleted. Refresh and review.':count(rows.length-failures.size,'row')+' deleted.',failures.size>0);
 });
 
 function renderCollections(){
@@ -1751,7 +1754,7 @@ function renderCardshow(){
   const cards=el('ul',undefined,'holdCards');
   for(const card of person.cards){
    const row=el('li');
-   row.append(el('span',card.name+(card.slab?' · '+card.slab:'')+(card.condition?' · '+card.condition:'')));
+   row.append(el('span',(card.test?'[test] ':'')+card.name+(card.slab?' · '+card.slab:'')+(card.condition?' · '+card.condition:'')));
    row.append(el('span',(card.source==='claim'?'claim sale':'shop'),'holdWhere'));
    cards.append(row);
   }
@@ -1762,7 +1765,7 @@ function renderCardshow(){
   done.onclick=()=>task(async()=>{
    const out=await api('cardshow',{action:'collected',buyerId:person.buyerId,how:holdChoice,cards:person.cards.map(c=>c.stockId)});
    holdPeople=out.held||[];holdCounts=out.counts||{};renderCardshow();
-   status(person.cards.length+' card(s) out of the box for '+holdWho(person)+'.');
+   status(count(person.cards.length,'card')+' out of the box for '+holdWho(person)+'.');
   });
   actions.append(done);
   for(const choice of ['cardshow','ship','meetup','hold']){

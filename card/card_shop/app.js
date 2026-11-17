@@ -456,7 +456,9 @@ async function loadHeld() {
   $('heldEmpty').hidden = cards.length > 0;
   for (const card of cards) {
    const row = el('div', undefined, 'submission');
-   row.appendChild(el('p', card.name, 'name'));
+   // A rehearsal only ever sits in a staff member's own box, and it has
+   // to read as one there too.
+   row.appendChild(el('p', (card.test ? '[test] ' : '') + card.name, 'name'));
    row.appendChild(el('p', grade(card) + ' · ' + money(card.price), 'meta'));
    row.appendChild(el('p', heldPlans[card.choice] || 'Held for you', 'state'));
    row.appendChild(el('p', 'With us since ' + new Date(card.since).toLocaleDateString(), 'meta'));
