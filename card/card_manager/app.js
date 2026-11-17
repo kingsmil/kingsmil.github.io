@@ -1,7 +1,7 @@
 'use strict';
 (() => {
 const $=id=>document.getElementById(id);
-let claimDeliveries=[],saleRunning=false,claimOffers=[],claimResult=null, limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
+let claimDeliveries=[],saleRunning=false,claimOffers=[],claimResult=null, claimTestRoutes=[], limitedSeller=false, token='', tab='drafts', drafts=[], stock=[], claims=[], claimRoute=null, claimsLoaded=false, claimPicked=new Set(), claimOrders=[], claimCheckout=null, selected=new Set(), dirty=new Set(), busy=false, bot='';
 let inboxUnread=0,holdWaiting=0;
 let batches=[],collections=[],template={},templateDirty=false,entryRate=0,expenses=[],trades=[];
 // The combined inventory is held apart from `stock` on purpose. `stock` is
@@ -61,7 +61,7 @@ async function api(path,body={},blob=false,signal){
  }catch(e){if(timeout.aborted)throw Error('Request timed out. Reload inventory before retrying changes.');throw e;}
 }
 
-function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
+function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
 async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
@@ -245,7 +245,7 @@ function inventoryAverages(){const groups=new Map();for(const r of [...stock,...
 const claimStatusLabel=value=>({open:'Open',pending_approval:'Pending approval',awaiting_payment:'Awaiting PayNow',paid:'Paid',shipped:'Shipped',converted:'Converted'})[value]||value;
 const claimPublicationLabel=value=>({queued:'Queued for Telegram',sending:'Sending to Telegram',published:'Live in Telegram',uncertain:'Needs publication review',retired:'Publication closed'})[value]||value;
 async function loadClaims(){
- const data=await api('claims',{action:'list'});claims=data.sales||[];claimRoute=data.route||null;claimOrders=data.orders||[];claimCheckout=data.checkout||null;claimOffers=data.offers||[];claimDeliveries=data.deliveries||[];claimResult=data.result||null;saleRunning=!!data.saleRunning;claimsLoaded=true;fillCheckout();renderClaims();if(tab==='queue')renderQueue();
+ const data=await api('claims',{action:'list'});claims=data.sales||[];claimRoute=data.route||null;claimTestRoutes=data.testRoutes||[];claimOrders=data.orders||[];claimCheckout=data.checkout||null;claimOffers=data.offers||[];claimDeliveries=data.deliveries||[];claimResult=data.result||null;saleRunning=!!data.saleRunning;claimsLoaded=true;fillCheckout();renderClaims();if(tab==='queue')renderQueue();
 }
 // Buyers act in Telegram while the manager is open, so a claim or order can
 // change under you. A stale action refreshes the list and says so instead of
@@ -492,6 +492,7 @@ function renderClaims(){
  $('claimRouteSettings').hidden=false;
  if(claimRoute?.topicId){const chat=String(claimRoute.channelId);$('claimTopicLink').value=chat.startsWith('-100')?'https://t.me/c/'+chat.slice(4)+'/'+claimRoute.topicId:'';}
  $('claimRouteNow').textContent=!claimRoute?'Not set up yet.':claimRoute.topicId?'Now posting to a topic, one shared thread.':'Now posting to channel '+claimRoute.channelId+' · comments in group '+claimRoute.discussionId+'.';
+ renderTestRoutes();
  const list=$('claimSales');list.replaceChildren();
  const ids=new Set(claims.map(s=>s.id));for(const id of claimPicked)if(!ids.has(id))claimPicked.delete(id);
  const shownClaims=claimShown();
@@ -506,7 +507,7 @@ function renderClaims(){
   if(sale.claimantId)card.append(el('p','Reserved by '+(sale.claimantName?sale.claimantName+' · ':'')+'Telegram ID '+sale.claimantId));
   card.append(el('p',claimPublicationLabel(sale.publicationStatus),sale.publicationStatus==='uncertain'?'rowerror':'hint'));
   if(sale.publicationError)card.append(el('p',sale.publicationError,'rowerror'));
-  if(sale.orderId)card.append(el('p','In order #'+sale.orderId+' · update it under Confirmed order','hint'));
+  if(sale.orderId)card.append(el('p','In order #'+sale.orderId+' · update it under Orders','hint'));
   const actions=el('div',undefined,'claimActions');
   if(sale.status==='open')actions.append(claimActionButton(sale,'Move to normal listings','convert'),claimOffersButton(sale));
   if(sale.status==='pending_approval')actions.append(claimActionButton(sale,'Approve claim','approve'),claimActionButton(sale,'Reject & reopen','reject'),claimActionButton(sale,'Cancel & reopen','cancel'),claimActionButton(sale,'Move to normal listings','convert'));
@@ -615,8 +616,20 @@ function renderDeliveries(){
   if(actions.childElementCount)card.append(actions);list.append(card);
  }
 }
+// Where rehearsals go, on screen beside where the real cards go. A route
+// nobody can see is a route nobody checks, and the topic a missing one
+// used to fall back to was the customers' own.
+const testRouteLink=r=>{if(!r)return '';const chat=String(r.chatId);return chat.startsWith('-100')?'https://t.me/c/'+chat.slice(4)+'/'+r.topic:'';};
+function renderTestRoutes(){
+ const find=kind=>claimTestRoutes.find(r=>r.kind===kind);
+ const claim=find('claim'),listing=find('listing');
+ $('claimTestTopicLink').value=testRouteLink(claim);
+ $('listingTestTopicLink').value=testRouteLink(listing);
+ $('claimTestRouteNow').textContent=claim?'Test claims post to '+(testRouteLink(claim)||('chat '+claim.chatId+' · topic '+claim.topic))+'.':'Not set up. Releasing a test claim is refused until it is, so a rehearsal can never land in the Claims topic buyers read.';
+ $('listingTestRouteNow').textContent=listing?'Test listings post to '+(testRouteLink(listing)||('chat '+listing.chatId+' · topic '+listing.topic))+'.':'Not set up yet.';
+}
 function renderClaimOrders(){
- $('claimCheckoutSettings').hidden=false;renderResult();renderDeliveries();$('saleState').textContent=saleRunning?'● Claim sale running':'No claim sale running';$('saleState').classList.toggle('on',saleRunning);
+ $('claimCheckoutSettings').hidden=false;renderResult();renderDeliveries();$('saleState').textContent=saleRunning?'● Claim sale running':'No claim sale running';$('saleState').classList.toggle('on',saleRunning);$('endSale').disabled=!saleRunning;
  const ready=$('claimReady'),list=$('claimOrders');ready.replaceChildren();list.replaceChildren();
  const groups=new Map();for(const s of claims)if(s.status==='awaiting_payment'&&!s.orderId&&s.claimantId){const g=groups.get(s.claimantId)||[];g.push(s);groups.set(s.claimantId,g);}
  for(const [buyer,rows] of groups){
@@ -658,10 +671,17 @@ $('claimBulkClear').onclick=()=>{claimPicked.clear();renderClaims();};
 for(const b of claimBulkActions)$(b.id).onclick=()=>task(()=>runClaimBulk(b));
 $('endSale').onclick=()=>task(async()=>{
  const live=claims.filter(s=>s.status==='open'&&['published','queued'].includes(s.publicationStatus)).length;
- if(!await confirmAction('End the claim sale?','Unsold cards ('+live+') stop taking claims and go back to the Claim queue for the next sale. Buyers with paid cards are asked once: mail (+shipping) or meetup. Unpaid claims keep their 10-minute timer.',[]))return;
- const r=await claimWrite({action:'end-sale'});await loadClaims();status('Claim sale ended · '+r.unlisted+' unsold back to the queue · '+(r.deliveries||[]).length+' buyers asked for mail or meetup.');
+ if(!await confirmAction('End the claim sale?','Unsold cards ('+live+') stop taking claims and go back to the Claim queue for the next sale. Buyers with paid cards are asked once how to get them: the next card show, mail (+shipping), a meetup, or we keep them. Unpaid claims keep their 10-minute timer.',[]))return;
+ const r=await claimWrite({action:'end-sale'});await loadClaims();status('Claim sale ended · '+r.unlisted+' unsold back to the queue · '+(r.deliveries||[]).length+' buyer(s) asked how to get their cards.');
 });
 $('refreshClaims').onclick=()=>task(async()=>{await loadClaims();status('Claims updated.');});
+const saveTestRoute=(kind,field,what)=>task(async()=>{
+ const topicLink=$(field).value.trim();
+ if(!/^https:\/\/t\.me\/(?:c\/\d+|[A-Za-z0-9_]{5,32})\/\d+$/.test(topicLink))throw Error('Paste a topic link (t.me/c/…/…). A rehearsal needs a topic of its own, not a channel.');
+ await api('claims',{action:'test-route',kind,topicLink});await loadClaims();status('Saved where test '+what+' post.');
+});
+$('saveClaimTestRoute').onclick=()=>saveTestRoute('claim','claimTestTopicLink','claims');
+$('saveListingTestRoute').onclick=()=>saveTestRoute('listing','listingTestTopicLink','listings');
 $('saveClaimRoute').onclick=()=>task(async()=>{
  const topicLink=$('claimTopicLink').value.trim();
  if(!/^https:\/\/t\.me\/(?:c\/\d+|[A-Za-z0-9_]{5,32})\/\d+$/.test(topicLink)&&!/^(?:@|(?:https:\/\/)?t\.me\/)[A-Za-z0-9_]{5,32}\/?$/.test(topicLink)&&!/^-100\d+$/.test(topicLink))throw Error('Paste a channel (@name or t.me/name) or a topic link.');
@@ -1208,7 +1228,7 @@ async function editSales(rows){
  status(failed.length?(rows.length-failed.length)+(correcting?' updated; ':' sold; ')+failed.length+' need attention. Refresh and review the failed rows.':correcting?'Sold prices updated.':'Sales recorded.',failed.length>0);
 }
 $('remove').onclick=()=>task(async()=>{
- const rows=picked();if(rows.some(r=>r.tradeIn))throw Error('Trade-linked cards keep their cost history. Record a zero-value sale for a write-off.');if(!await confirmAction('Delete '+rows.length+' rows?',tab==='drafts'?'Drafts will be discarded.':'This removes selected listings and their amounts from your accounting totals. This cannot be undone here.',rows))return;
+ const rows=picked();if(rows.some(r=>r.tradeIn))throw Error('Trade-linked cards keep their cost history. Record a zero-value sale for a write-off.');if(!await confirmAction('Delete '+rows.length+(rows.length===1?' row?':' rows?'),tab==='drafts'?'Drafts will be discarded.':'This removes selected listings and their amounts from your accounting totals. This cannot be undone here.',rows))return;
  const saved=rows.filter(r=>tab!=='drafts'||r.revision>0);
  const result=saved.length?await api(tab==='drafts'?'discard':'stock',{rows:saved.map(payload),action:'delete'}):[];
  const failures=new Set(result.filter(r=>r.error).map(r=>r.id||'stock:'+r.stockId));
@@ -1692,6 +1712,9 @@ $('inboxReplyForm').onsubmit=e=>{e.preventDefault();task(async()=>{
 // between lists.
 let holdPeople=[],holdCounts={},holdChoice='cardshow',holdLoaded=false;
 const holdNames={cardshow:'Collecting at the show',ship:'To post',meetup:'Meetups',hold:'Held'};
+// The pile names read as headings, not as the end of a sentence:
+// "Move to "+"To post" is how a button came to say "Move to to post".
+const holdMoveNames={cardshow:'the card show pile',ship:'the post pile',meetup:'the meetup list',hold:'the held box'};
 async function loadCardshow(){
  const out=await api('cardshow',{action:'list'});
  holdPeople=out.held||[];holdCounts=out.counts||{};holdLoaded=true;
@@ -1744,11 +1767,11 @@ function renderCardshow(){
   actions.append(done);
   for(const choice of ['cardshow','ship','meetup','hold']){
    if(choice===holdChoice)continue;
-   const move=el('button','Move to '+holdNames[choice].toLowerCase());move.type='button';
+   const move=el('button','Move to '+holdMoveNames[choice]);move.type='button';
    move.onclick=()=>task(async()=>{
     const out=await api('cardshow',{action:'choice',buyerId:person.buyerId,choice,cards:person.cards.map(c=>c.stockId)});
     holdPeople=out.held||[];holdCounts=out.counts||{};renderCardshow();
-    status('Moved to '+holdNames[choice].toLowerCase()+'.');
+    status('Moved to '+holdMoveNames[choice]+'.');
    });
    actions.append(move);
   }
