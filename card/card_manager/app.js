@@ -205,6 +205,13 @@ function change(r,field,value){
  dirty.add(key(r));counts();scheduleSave();
 }
 function cents(input){if(!/^\d+(\.\d{0,2})?$/.test(input))return null;const n=Math.round(Number(input)*100);return Number.isSafeInteger(n)&&n<=9999999999?n:null;}
+// A sold card's cost stays editable: a lot's total often arrives after some of
+// its cards have sold. It saves on its own, outside the unsold-row autosave.
+function soldCostInput(r,input){
+ input.disabled=false;input.title='Cost can be corrected after the sale';
+ input.oninput=()=>input.setCustomValidity(cents(input.value)===null?'Use an SGD amount with up to 2 decimals':'');
+ input.onchange=()=>{const n=cents(input.value);if(n===null||n===r.cost)return;task(async()=>{const [out]=await api('stock',{rows:[{...payload(r),cost:n}],action:'cost'});if(out?.error)throw Error(out.error);await load(true);status('Cost updated.');});};
+}
 function moneyInput(r,field){
  const input=el('input');input.type='text';input.inputMode='decimal';input.value=r.invalidPrices?.[field]??money(r[field]);input.className='money';input.setAttribute('aria-label',field+' for '+r.name);
  if(r.invalidPrices?.[field]!==undefined)input.setCustomValidity('Use an SGD amount with up to 2 decimals');
@@ -728,7 +735,7 @@ function render(){
   ['M','NM','LP','MP','HP','Damaged','Slab'].forEach(v=>{const o=el('option',v);o.value=v;sel.append(o);});sel.value=r.condition;sel.disabled=r.sold||r.consignment;if(sel.disabled)sel.dataset.fixed='true';
   sel.onchange=()=>{change(r,'condition',sel.value);render();};cond.append(sel);
   if(r.condition==='Slab'){const grade=el('input');grade.className='grade';grade.placeholder='PSA 10';grade.value=r.slab||'';grade.disabled=r.sold||r.consignment;if(grade.disabled)grade.dataset.fixed='true';grade.onchange=()=>change(r,'slab',grade.value);cond.append(grade);}tr.append(cond);
-  ['cost','price'].forEach(field=>{const cell=el('td',undefined,field+'Cell'),input=moneyInput(r,field);cell.dataset.label=field==='cost'?'Cost SGD · private':'Asking SGD';input.disabled=r.sold||r.consignment||(field==='cost'&&!!r.tradeIn);if(input.disabled)input.dataset.fixed='true';cell.append(input);tr.append(cell);});
+  ['cost','price'].forEach(field=>{const cell=el('td',undefined,field+'Cell'),input=moneyInput(r,field);cell.dataset.label=field==='cost'?'Cost SGD · private':'Asking SGD';input.disabled=r.sold||r.consignment||(field==='cost'&&!!r.tradeIn);if(field==='cost'&&r.sold&&r.stockId&&!r.consignment&&!r.tradeIn)soldCostInput(r,input);if(input.disabled)input.dataset.fixed='true';cell.append(input);tr.append(cell);});
   tr.append(photoCell(r,0),photoCell(r,1));
   const actions=el('td');
   if(r.stockId){const link=el('a','Listing ↗');link.href='https://t.me/'+bot+'?start=listing_'+r.stockId;link.target='_blank';link.rel='noopener noreferrer';actions.append(link);const market=el('button','Marketplaces','marketplaceDetails');market.type='button';market.setAttribute('aria-label','Marketplaces for '+r.name);market.onclick=()=>task(()=>openMarketplaceListing(r));actions.append(market);}
