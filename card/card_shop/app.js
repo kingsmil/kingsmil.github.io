@@ -11,6 +11,10 @@
 (() => {
 const tg = window.Telegram && window.Telegram.WebApp;
 const $ = id => document.getElementById(id);
+// Telegram's own browser reports a US locale to every buyer, so dates in
+// the app read 11/16/2026 to somebody standing in Singapore. The shop's
+// locale is the shop's, not the device's.
+const SHOP_LOCALE = 'en-SG';
 const base = window.CARD_API_BASE;
 
 let token = '', role = 'buyer', query = '', offset = 0, total = 0;
@@ -461,7 +465,7 @@ async function loadHeld() {
    row.appendChild(el('p', (card.test ? '[test] ' : '') + card.name, 'name'));
    row.appendChild(el('p', grade(card) + ' · ' + money(card.price), 'meta'));
    row.appendChild(el('p', heldPlans[card.choice] || 'Held for you', 'state'));
-   row.appendChild(el('p', 'With us since ' + new Date(card.since).toLocaleDateString(), 'meta'));
+   row.appendChild(el('p', 'With us since ' + new Date(card.since).toLocaleDateString(SHOP_LOCALE), 'meta'));
    list.appendChild(row);
   }
  } catch (failure) {
@@ -482,7 +486,7 @@ async function loadOffers() {
   for (const offer of found.offers || []) {
    const row = el('div', undefined, 'submission');
    row.appendChild(el('p', 'Submitted offer', 'name'));
-   row.appendChild(el('p', new Date(offer.createdAt).toLocaleString(), 'meta'));
+   row.appendChild(el('p', new Date(offer.createdAt).toLocaleString(SHOP_LOCALE), 'meta'));
    for (const item of offer.items || []) {
     row.appendChild(el('p', item.name + ' · ' + grade(item) + ' · ' + money(item.offer), 'meta'));
    }
@@ -722,7 +726,7 @@ async function loadSubmissions(offset = 0) {
 // load and the page tells them so, with the reason -- they bought from us --
 // and the entry deadline. Who may enter is the server's call; the page only
 // shows it. Every state ends with a way into Browse.
-const dateLabel = iso => new Date(iso).toLocaleString(undefined, {weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
+const dateLabel = iso => new Date(iso).toLocaleString(SHOP_LOCALE, {weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'});
 function timeLeft(iso) {
  const ms = new Date(iso).getTime() - Date.now();
  if (!(ms > 0)) return '';
