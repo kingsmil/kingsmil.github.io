@@ -77,7 +77,7 @@ async function api(path,body={},blob=false,signal){
  }catch(e){if(timeout.aborted)throw Error('Request timed out. Reload inventory before retrying changes.');throw e;}
 }
 
-function signOut(clear=true){clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
+function signOut(clear=true){$('photoDraftDialog').close();clearPhotoDraft();clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
 async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
@@ -1103,6 +1103,288 @@ $('bulkPhotos').onchange=()=>task(async()=>{
  }));
  const errors=files.filter((_,index)=>failed[index]).map(file=>file.name);
  render();$('bulkPhotos').value='';status(count+' photos matched.'+(errors.length?' Could not match: '+errors.join(', '):''),errors.length>0);
+});
+const photoDraftLimit=100;
+const photoDraftFields=[
+ ['game','Game',[['pokemon','Pokémon'],['riftbound','Riftbound']]],
+ ['condition','Condition',['M','NM','LP','MP','HP','Damaged','Slab'].map(value=>[value,value])],
+ ['slab','Grade',80],['cost','Cost · SGD (private)'],['price','Asking · SGD'],['notes','Buyer-visible note',300]
+];
+let photoDraftFiles=[],photoDraftRows=[],photoDraftStarted=false;
+const photoDraftSelected=()=>photoDraftRows.filter(entry=>entry.selected&&!entry.row.revision);
+function photoDraftMessage(message='',error=false){
+ const line=$('photoDraftStatus');line.textContent=message;line.classList.toggle('rowerror',error);
+}
+function photoDraftButton(label,action){
+ const button=el('button',label,'mini');button.type='button';button.onclick=action;return button;
+}
+function photoDraftField([field,title,options],value,oninput){
+ const label=el('label',title),input=el(Array.isArray(options)?'select':'input');
+ if(Array.isArray(options)){
+  if(value==='')input.append(new Option('Keep current',''));
+  for(const [key,name] of options)input.append(new Option(name,key));
+ }else if(options)input.maxLength=options;
+ else input.inputMode='decimal';
+ input.value=value;input.dataset.field=field;if(oninput)input.oninput=()=>oninput(input.value);
+ label.append(input);return label;
+}
+function updatePhotoDraftSelection(){
+ const available=photoDraftRows.filter(entry=>!entry.row.revision).length,count=photoDraftSelected().length;
+ const select=$('photoDraftSelect');select.checked=available>0&&count===available;select.indeterminate=count>0&&count<available;
+ $('photoDraftApply').disabled=$('photoDraftPaste').disabled=count===0;
+}
+function syncPhotoDraftRows(){
+ const count=Math.floor(photoDraftFiles.length/2);
+ while(photoDraftRows.length<count){
+  photoDraftRows.push({selected:true,cost:'',price:'',row:{id:newID(),revision:0,cardId:0,name:'',game:'pokemon',condition:'NM',slab:'',notes:'',cost:0,price:0,photos:[]}});
+ }
+ photoDraftRows.length=count;
+}
+function makePhotoDraftFile(file){
+ return {file,url:URL.createObjectURL(file),uploaded:'',error:''};
+}
+const validPhotoDraftFile=file=>['image/jpeg','image/png'].includes(file.type)&&file.size<=25*1024*1024;
+function movePhotoDraftFile(from,to){
+ [photoDraftFiles[from],photoDraftFiles[to]]=[photoDraftFiles[to],photoDraftFiles[from]];
+ renderPhotoDraft();
+}
+function photoDraftPreview(index,side){
+ const photo=photoDraftFiles[index],figure=el('figure'),image=el('img');
+ image.src=photo.url;image.alt=side+' preview';image.loading='lazy';image.decoding='async';
+ const caption=el('figcaption',side+' · '+photo.file.name);caption.title=photo.file.name;
+ figure.append(image,caption);
+ if(!photoDraftStarted){
+  const order=el('div',undefined,'photoDraftPhotoActions');
+  for(const [delta,label] of [[-1,'Earlier'],[1,'Later']]){
+   const button=photoDraftButton(label,()=>movePhotoDraftFile(index,index+delta));button.disabled=!photoDraftFiles[index+delta];
+   button.setAttribute('aria-label','Move photo '+(index+1)+' '+label.toLowerCase());order.append(button);
+  }
+  figure.append(order);
+ }
+ if(photo.error)figure.append(el('p',photo.error,'rowerror'));
+ if(!photoDraftRows[Math.floor(index/2)]?.row.revision){
+  const replace=el('input');replace.type='file';replace.accept='image/jpeg,image/png';replace.hidden=true;
+  replace.setAttribute('aria-label','Replace photo '+(index+1));
+  replace.onchange=()=>{
+   const file=replace.files[0];if(!file)return;
+   if(!validPhotoDraftFile(file)){photoDraftMessage('Choose a JPG or PNG up to 25 MB.',true);return;}
+   URL.revokeObjectURL(photo.url);photoDraftFiles[index]=makePhotoDraftFile(file);renderPhotoDraft();photoDraftMessage();
+  };
+  const button=photoDraftButton('Replace',()=>replace.click());button.setAttribute('aria-label','Replace '+side.toLowerCase()+' photo '+(index+1));
+  figure.append(button,replace);
+ }
+ return figure;
+}
+function photoDraftIdentity(row,index){
+ const wrapper=el('div',undefined,'photoDraftIdentity');
+ const label=el('label','Card '+(index+1)+' name'),input=el('input'),results=el('div',undefined,'results');
+ input.value=row.name;input.maxLength=180;input.placeholder='Name or catalogue search';
+ input.oninput=()=>{row.name=input.value;row.cardId=0;results.replaceChildren();};
+ const search=photoDraftButton('Find in catalogue',async()=>{
+  const query=input.value.trim();if(query.length<2){results.textContent='Enter a card name or number.';return;}
+  const session=token;search.disabled=true;results.textContent='Searching…';
+  try{
+   const cards=await api('search',{query});
+   if(session!==token||input.value.trim()!==query||!results.isConnected)return;
+   results.replaceChildren();
+   if(!cards.length)results.textContent='No matches. You can use a custom name.';
+   for(const card of cards){
+    const match=photoDraftButton(card.name,()=>{row.cardId=card.id;row.name=card.name;renderPhotoDraft();});results.append(match);
+   }
+  }catch(e){if(session===token&&input.value.trim()===query)results.textContent=e.message;}
+  finally{search.disabled=false;}
+ });
+ input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();search.click();}};
+ label.append(input);wrapper.append(label,search,results);
+ if(row.cardId){
+  wrapper.append(el('small','Catalogue #'+row.cardId),photoDraftButton('Use custom name',()=>{row.cardId=0;renderPhotoDraft();}));
+ }
+ return wrapper;
+}
+function renderPhotoDraft(){
+ const odd=photoDraftFiles.length%2;
+ $('photoDraftFilesLabel').hidden=photoDraftStarted;
+ $('photoDraftCount').textContent=photoDraftFiles.length
+  ?photoDraftFiles.length+' photos · '+photoDraftRows.length+' card pairs'+(odd?' · 1 unpaired photo':'')
+  :'Add photos in front, back order. Check the preview to confirm the file picker’s order.';
+ $('photoDraftShared').hidden=$('photoDraftSelectLabel').hidden=!photoDraftRows.some(entry=>!entry.row.revision);
+ $('photoDraftDiscard').disabled=!photoDraftFiles.length;
+ $('photoDraftSave').disabled=!!odd||!photoDraftRows.some(entry=>!entry.row.revision);
+ const list=$('photoDraftRows');list.replaceChildren();
+ for(const [index,entry] of photoDraftRows.entries()){
+  const {row}=entry,card=el('article',undefined,'photoDraftCard'),heading=el('div',undefined,'photoDraftHeading');
+  if(row.revision)heading.append(el('strong','Card '+(index+1)+' · Saved · '+row.name));
+  else{
+   const pick=el('input'),label=el('label','Card '+(index+1));
+   pick.type='checkbox';pick.checked=entry.selected;pick.onchange=()=>{entry.selected=pick.checked;updatePhotoDraftSelection();};
+   label.prepend(pick);heading.append(label);
+   if(!photoDraftStarted)heading.append(photoDraftButton('Swap front/back',()=>movePhotoDraftFile(index*2,index*2+1)));
+  }
+  const photos=el('div',undefined,'photoDraftPair');
+  photos.append(photoDraftPreview(index*2,'Front'),photoDraftPreview(index*2+1,'Back'));card.append(heading,photos);
+  if(!row.revision){
+   card.append(photoDraftIdentity(row,index));
+   const fields=el('div',undefined,'photoDraftFields');
+   for(const config of photoDraftFields){
+    const [field]=config,amount=field==='cost'||field==='price';
+    if(field==='game'&&row.cardId)continue;
+    const label=photoDraftField(config,amount?entry[field]:row[field],value=>{
+     if(amount)entry[field]=value;
+     else row[field]=value;
+     if(field==='condition')fields.querySelector('[data-field="slab"]').parentElement.hidden=value!=='Slab';
+    });
+    if(field==='slab')label.hidden=row.condition!=='Slab';
+    label.querySelector('input,select').setAttribute('aria-label',config[1]+' for card '+(index+1));
+    fields.append(label);
+   }
+   card.append(fields);
+   if(row.error)card.append(el('p',row.error,'rowerror'));
+  }
+  list.append(card);
+ }
+ if(odd){
+  const index=photoDraftFiles.length-1,card=el('article',undefined,'photoDraftCard');
+  card.append(el('strong','Unpaired photo'),photoDraftPreview(index,'Unpaired'),photoDraftButton('Remove unpaired photo',()=>{
+   URL.revokeObjectURL(photoDraftFiles.pop().url);syncPhotoDraftRows();renderPhotoDraft();photoDraftMessage();
+  }));
+  list.append(card);
+ }
+ updatePhotoDraftSelection();
+}
+function clearPhotoDraft(){
+ for(const photo of photoDraftFiles)URL.revokeObjectURL(photo.url);
+ photoDraftFiles=[];photoDraftRows=[];photoDraftStarted=false;
+ $('photoDraftFiles').value='';$('photoDraftPrices').value='';$('photoDraftShared').open=false;
+ $('photoDraftDefaults').replaceChildren(...photoDraftFields.map(config=>photoDraftField(config,'')));
+ photoDraftMessage();renderPhotoDraft();
+}
+$('openPhotoDraft').onclick=()=>{
+ if(!photoDraftFiles.length)clearPhotoDraft();
+ $('photoDraftDialog').showModal();
+};
+$('photoDraftClose').onclick=()=>$('photoDraftDialog').close();
+$('photoDraftDialog').oncancel=e=>{if(busy)e.preventDefault();};
+$('photoDraftDiscard').onclick=async()=>{
+ if(await confirmAction('Clear this photo batch?','Unsaved photos and edits in this batch will be discarded.',[]))clearPhotoDraft();
+};
+$('photoDraftFiles').onchange=()=>{
+ const files=[...$('photoDraftFiles').files];$('photoDraftFiles').value='';
+ if(!files.length||photoDraftStarted)return;
+ if(photoDraftFiles.length+files.length>photoDraftLimit*2){photoDraftMessage('Add up to '+photoDraftLimit*2+' photos per batch.',true);return;}
+ const invalid=files.find(file=>!validPhotoDraftFile(file));
+ if(invalid){photoDraftMessage(invalid.name+' must be a JPG or PNG up to 25 MB. Choose the group again.',true);return;}
+ photoDraftFiles.push(...files.map(makePhotoDraftFile));syncPhotoDraftRows();renderPhotoDraft();photoDraftMessage();
+};
+$('photoDraftSelect').onchange=()=>{
+ for(const entry of photoDraftRows)entry.selected=$('photoDraftSelect').checked;
+ renderPhotoDraft();
+};
+$('photoDraftApply').onclick=()=>{
+ const entries=photoDraftSelected(),inputs=[...$('photoDraftDefaults').querySelectorAll('[data-field]')];
+ const changes=Object.fromEntries(inputs.map(input=>[input.dataset.field,input.value.trim()]).filter(([,value])=>value));
+ if(!Object.keys(changes).length){photoDraftMessage('Enter at least one shared detail.',true);return;}
+ if(['cost','price'].some(field=>changes[field]&&cents(changes[field])===null)){
+  photoDraftMessage('Enter SGD amounts with up to two decimal places.',true);return;
+ }
+ for(const entry of entries){
+  for(const [field,value] of Object.entries(changes)){
+   if(field==='cost'||field==='price')entry[field]=value;
+   else if(field!=='game'||!entry.row.cardId)entry.row[field]=value;
+  }
+ }
+ renderPhotoDraft();photoDraftMessage('Applied shared details to '+entries.length+' selected cards.');
+};
+$('photoDraftPaste').onclick=()=>{
+ const entries=photoDraftSelected(),paste=$('photoDraftPrices').value.trim();
+ const values=paste?paste.split(/\r?\n/).map(value=>value.trim()):[];
+ if(values.length!==entries.length){photoDraftMessage('Found '+values.length+' lines for '+entries.length+' selected cards. Paste one price per card.',true);return;}
+ const invalid=values.findIndex(value=>cents(value)===null);
+ if(invalid!==-1){photoDraftMessage('Use a valid SGD amount on line '+(invalid+1)+'.',true);return;}
+ entries.forEach((entry,index)=>{entry.price=values[index];});renderPhotoDraft();photoDraftMessage('Applied asking prices to '+entries.length+' selected cards.');
+};
+async function savePhotoDraft(){
+ const pending=photoDraftRows.filter(({row})=>!row.revision);
+ if(!pending.length||photoDraftFiles.length%2)return;
+ let invalid=0;
+ for(const entry of pending){
+  const {row}=entry;
+  row.name=row.name.trim();row.slab=row.condition==='Slab'?row.slab.trim():'';
+  row.cost=cents(entry.cost.trim()||'0');row.price=cents(entry.price.trim()||'0');
+  const [grader,grade,...extra]=row.slab.split(/\s+/),score=Number(grade);
+  const validGrade=!!grader&&new TextEncoder().encode(grader).length<=20&&score>=1&&score<=10&&Number.isInteger(score*2)&&!extra.length;
+  row.error=!row.name?'Enter a card name.':row.condition==='Slab'&&!validGrade?'Enter a grade such as PSA 10.':row.cost===null||row.price===null?'Use valid SGD amounts.':'';
+  if(row.error)invalid++;
+ }
+ if(invalid){renderPhotoDraft();photoDraftMessage('Check the highlighted cards before saving.',true);return;}
+ photoDraftStarted=true;
+ const session=token,jobs=[];
+ for(const [index,{row}] of photoDraftRows.entries()){
+  if(row.revision)continue;
+  jobs.push(...photoDraftFiles.slice(index*2,index*2+2).filter(photo=>!photo.uploaded));
+ }
+ let next=0,finished=0;
+ photoDraftMessage(jobs.length?'Uploading '+jobs.length+' photos…':'Saving drafts…');
+ await Promise.all(Array.from({length:Math.min(2,jobs.length)},async()=>{
+  while(next<jobs.length&&session===token){
+   const photo=jobs[next++];photo.error='';
+   try{
+    const prepared=await portraitBlob(photo.file);
+    if(session!==token)return;
+    photo.uploaded=await uploadPreparedPhoto(prepared);
+   }
+   catch(e){photo.error=e.message||'Upload failed.';}
+   if(session===token)photoDraftMessage('Processed '+(++finished)+' of '+jobs.length+' photos…');
+  }
+ }));
+ if(session!==token)return;
+ const ready=[];
+ for(const [index,{row}] of photoDraftRows.entries()){
+  if(row.revision)continue;
+  row.photos=photoDraftFiles.slice(index*2,index*2+2).map(photo=>photo.uploaded);
+  if(row.photos.every(Boolean))ready.push(row);
+ }
+ if(ready.length){
+  photoDraftMessage('Saving '+ready.length+' drafts…');
+  let saveError;
+  try{await saveRows(ready,'drafts',false);}
+  catch(e){saveError=e;}
+  if(session!==token)return;
+  const uncertain=ready.filter(row=>!row.revision&&(saveError||row.error==='draft changed; reload before saving'));
+  if(uncertain.length){
+   try{
+    const data=await api('data');
+    const savedById=new Map((data.drafts||[]).map(row=>[row.id,row]));
+    for(const row of uncertain){
+     const saved=savedById.get(row.id);
+     if(!saved)continue;
+     const expected=payload(row),actual=payload(saved);
+     // A catalogue match is given its canonical name by the server.
+     expected.revision=actual.revision;
+     if(row.cardId)expected.name=actual.name;
+     if(JSON.stringify(expected)!==JSON.stringify(actual))continue;
+     row.revision=saved.revision;row.error='';
+    }
+   }catch(e){saveError??=e;}
+  }
+  if(session!==token)return;
+  for(const row of ready){
+   if(row.revision&&!drafts.some(draft=>draft.id===row.id))drafts.push(row);
+   else if(!row.revision&&saveError&&!row.error)row.error=saveError.message;
+  }
+ }
+ const remaining=photoDraftRows.filter(({row})=>!row.revision).length;
+ const saved=photoDraftRows.length-remaining;
+ if(remaining){photoDraftMessage(saved+' saved · '+remaining+' need attention. Fix the marked cards and save again.',true);return;}
+ $('photoDraftDialog').close();clearPhotoDraft();
+ $('filter').value='';inventoryPage=Math.floor((drafts.length-1)/inventoryPageSize);
+ status('Saved '+saved+(saved===1?' card draft.':' card drafts.'));
+}
+$('photoDraftSave').onclick=()=>task(async()=>{
+ const controls=$('photoDraftControls'),buttons=['photoDraftSave','photoDraftDiscard','photoDraftClose'].map($);
+ controls.disabled=true;buttons.forEach(button=>button.disabled=true);
+ try{await savePhotoDraft();}
+ catch(e){photoDraftMessage(e.message,true);}
+ finally{controls.disabled=false;buttons.forEach(button=>button.disabled=false);renderPhotoDraft();}
 });
 function picked(){const rows=(tab==='drafts'?drafts:stock).filter(r=>selected.has(key(r)));if(!rows.length)throw Error('Select at least one row.');if(rows.length>100)throw Error('Select up to 100 rows.');return rows;}
 // A custom listing has no catalogue card to name its game, so the shop filter
