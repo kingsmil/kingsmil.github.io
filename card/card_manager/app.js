@@ -1775,14 +1775,39 @@ async function openMarketplaceListing(r){
 }
 const telegram=window.Telegram?.WebApp;
 async function telegramSignIn(){
- if(!telegram?.initData)return;
- $('telegramLoginStatus').textContent='Verifying your Telegram account…';
- try{const result=await api('manager-login',{initData:telegram.initData});token=result.token;await load(false,result.inventory);$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('telegramLoginStatus').textContent='';status('Inventory ready.');}
- catch(e){token='';$('telegramLoginStatus').textContent=e.message;throw e;}
+ const feedback=$('telegramLoginStatus'),button=$('telegramLogin');
+ button.hidden=true;
+ feedback.textContent='Opening inventory…';
+ feedback.hidden=false;
+ $('login').hidden=false;
+ try{
+  const result=await api('manager-login',{initData:telegram.initData});
+  token=result.token;
+  await load(false,result.inventory);
+  $('login').hidden=true;
+  $('workspace').hidden=false;
+  $('logout').hidden=false;
+  feedback.hidden=true;
+  button.textContent='Open inventory';
+  status('Inventory ready.');
+ }catch(e){
+  token='';
+  feedback.textContent=e.message;
+  button.textContent='Try again';
+ }finally{
+  button.hidden=false;
+ }
 }
-$('telegramLogin').onclick=()=>task(telegramSignIn);
-if(telegram?.initData){telegram.ready();telegram.expand();$('telegramLogin').hidden=false;$('loginForm').hidden=true;task(telegramSignIn);}
-else task(resumeSession);
+if(telegram?.initData){
+ $('telegramLogin').onclick=()=>task(telegramSignIn);
+ telegram.ready();
+ telegram.expand();
+ task(telegramSignIn);
+}else{
+ $('passwordLogin').hidden=false;
+ $('login').hidden=false;
+ task(resumeSession);
+}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&saveTimer)autosave(tab);});
 window.addEventListener('beforeunload',e=>{if(dirty.size||templateDirty){e.preventDefault();e.returnValue='';}});
 // The inbox. Buyers talk to the bot all day; most of it the bot answers
