@@ -37,16 +37,20 @@ const key=r=>r.stockId?'stock:'+r.stockId:r.id;
 // padded, so 6 finds 06. A number still falls back to a substring, so half a
 // number typed on the way to the whole one keeps narrowing the list.
 const unpad=s=>s.replace(/^0+(?=[0-9])/,'');
-const filterMatch=(haystack,query)=>{
- const terms=query.toLowerCase().split(/\s+/).filter(Boolean);
- if(!terms.length)return true;
+const filterMatch=(haystack,terms)=>{
  const text=haystack.toLowerCase();
  const numbers=new Set((text.match(/[0-9]+/g)||[]).map(unpad));
  return terms.every(term=>/^[0-9]+$/.test(term)?(numbers.has(unpad(term))||text.includes(term)):text.includes(term));
 };
 const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.notes||'')+(r.reservedName||'')+' '+r.cardId+' '+(r.stockId||'');
 let buybackSelection=0;
-const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox'||tab==='cardshow')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
+function shown(){
+ if(tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox'||tab==='cardshow')return [];
+ const rows=tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold);
+ const terms=$('filter').value.toLowerCase().split(/\s+/).filter(Boolean),unassigned=tab==='stock'&&$('unassigned').checked;
+ if(!buybackSelection&&!terms.length&&!unassigned)return rows;
+ return rows.filter(r=>(!buybackSelection||r.costBatchId===buybackSelection)&&(!terms.length||filterMatch(rowText(r),terms))&&(!unassigned||!batchFor(r)));
+}
 const money=c=>(Number(c||0)/100).toFixed(2);
 // One way to write an amount, because two was the bug: the figures at the
 // top said $14347.24, the row under them said S$5.00, and the dialog in
@@ -261,12 +265,13 @@ function validateRows(rows){
  const invalid=rows.filter(r=>Object.keys(r.invalidPrices||{}).length);
  if(invalid.length){invalid.forEach(r=>r.error='Fix the invalid SGD amount.');throw Error('Fix the invalid price in the selected rows first.');}
 }
-function counts(){
+function counts(visible=shown()){
  $('selected').textContent=selected.size+' selected';
  const chosen=stock.filter(r=>selected.has(key(r)));
  $('share').textContent=chosen.length&&chosen.every(r=>r.shared)?'Take out of shared':'Make shared';
  document.querySelectorAll('#rows tr').forEach(tr=>{tr.querySelector('input[type=checkbox]').checked=selected.has(tr.dataset.key);tr.classList.toggle('dirty',dirty.has(tr.dataset.key));});
- const visible=shown(),count=visible.filter(r=>selected.has(key(r))).length;$('all').checked=visible.length>0&&count===visible.length;$('all').indeterminate=count>0&&count<visible.length;
+ let count=0;for(const row of visible)if(selected.has(key(row)))count++;
+ $('all').checked=visible.length>0&&count===visible.length;$('all').indeterminate=count>0&&count<visible.length;
 }
 async function thumb(id,img){
  if(!id)return;
@@ -284,8 +289,8 @@ function photoCell(r,i,load=true){
  const td=el('td'),label=el('label',undefined,'photobox'),img=el('img',undefined,'photo');img.alt=photoLabel(i);img.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
  const id=(r.photos||[])[i];img.decoding='async';img.loading='lazy';if(id&&load){img.dataset.photo=id;if(photos.has(id))img.src=photos.get(id);else photoObserver.observe(img);}
  label.append(img,el('span',photoLabel(i)+' · '+(id?'Change':'Upload')));
- if(!r.sold&&!r.consignment){const file=el('input');file.type='file';file.accept='image/jpeg,image/png';file.onchange=()=>{if(file.files[0])task(async()=>{await upload(r,i,file.files[0]);render();status('Photo ready. Save the row to keep it.');});};label.append(file);}
- td.className=i===0?'frontPhoto':i===1?'backPhoto':'cornerPhoto';td.append(label);if(id&&!r.sold&&!r.consignment){const rotate=el('button','Rotate ↻','rotatePhoto');rotate.type='button';rotate.setAttribute('aria-label','Rotate '+photoLabel(i)+' 90 degrees');rotate.onclick=()=>task(async()=>{const result=await api('rotate',{photo:id,degrees:90});const updated=[...(r.photos||[])];updated[i]=result.photo;change(r,'photos',updated);render();status('Photo rotated. Save the row to keep it.');});td.append(rotate);}return td;
+ if(!r.sold&&!r.consignment){const file=el('input');file.type='file';file.accept='image/jpeg,image/png';file.onchange=()=>{if(file.files[0])task(async()=>{await upload(r,i,file.files[0]);status('Photo ready. Save the row to keep it.');});};label.append(file);}
+ td.className=i===0?'frontPhoto':i===1?'backPhoto':'cornerPhoto';td.append(label);if(id&&!r.sold&&!r.consignment){const rotate=el('button','Rotate ↻','rotatePhoto');rotate.type='button';rotate.setAttribute('aria-label','Rotate '+photoLabel(i)+' 90 degrees');rotate.onclick=()=>task(async()=>{const result=await api('rotate',{photo:id,degrees:90});const updated=[...(r.photos||[])];updated[i]=result.photo;change(r,'photos',updated);status('Photo rotated. Save the row to keep it.');});td.append(rotate);}return td;
 }
 function inventoryGroupKey(r){return [r.cardId===0?'custom:'+r.name.trim().toLowerCase():r.cardId,r.condition,r.condition==='Slab'?(r.slab||'').trim().toUpperCase():''].join('|');}
 function inventoryAverages(){const groups=new Map();for(const r of [...stock,...drafts].filter(r=>!r.test)){const k=inventoryGroupKey(r),g=groups.get(k)||{count:0,cost:0,price:0,sold:0,sales:0};if(r.sold){g.sold++;g.sales+=r.sale||0;}else{g.count++;g.cost+=r.cost;g.price+=r.price;}groups.set(k,g);}return groups;}
@@ -840,7 +845,7 @@ function render(){
   else{const dup=el('button','Duplicate','mini');dup.onclick=()=>{drafts.push({...r,id:newID(),revision:0,photos:[],error:''});dirty.add(key(drafts.at(-1)));selected.add(key(drafts.at(-1)));inventoryPage=Math.floor((drafts.length-1)/inventoryPageSize);render();};actions.append(dup);}
   actions.className='rowActions';tr.append(actions);$('rows').append(tr);
  });
- counts();if(busy)lock(true);
+ counts(rows);if(busy)lock(true);
 }
 document.querySelectorAll('[data-tab]').forEach(n=>n.onclick=()=>{if(limitedSeller&&n.dataset.tab==='central')return;if(saveTimer)autosave(tab);buybackSelection=0;tab=n.dataset.tab;inventoryPage=0;selected.clear();$('filter').value='';$('all').checked=false;
  // Fetched when the tab is first opened rather than at sign-in: it reads every
@@ -946,8 +951,8 @@ $('addLinks').onclick=()=>task(async()=>{
  status(added+' rows added.'+(failures.length?' '+failures.length+' unmatched links left to review.':''),failures.length>0);
 });
 async function upload(row,index,file){
- const photo=await entryPhoto(file);const result={photo};
- const copy=[...(row.photos||[])];copy[index]=result.photo;
+ const photo=await uploadPreparedPhoto(await portraitBlob(file));
+ const copy=[...(row.photos||[])];copy[index]=photo;
  // A back photo can be chosen before the front; keep the empty front slot visible.
  for(let i=0;i<copy.length;i++)if(!copy[i])copy[i]='';
  change(row,'photos',copy);
@@ -1118,12 +1123,12 @@ function refreshRowState(){
   else if(line)line.remove();
  });
 }
-function scheduleSave(which=tab){
+function scheduleSave(which=tab,delay=900){
  if(which!=='drafts'&&which!=='stock')return;
  clearTimeout(saveTimer);
  const waiting=savableRows(which).length;
  if(waiting&&which===tab)showSaveState(waiting===1?'1 edit not saved':waiting+' edits not saved');
- saveTimer=setTimeout(()=>autosave(which),900);
+ saveTimer=setTimeout(()=>autosave(which),delay);
 }
 async function autosave(which){
  clearTimeout(saveTimer);
@@ -1148,7 +1153,7 @@ async function autosave(which){
  else if(broken.length)showSaveState('Fix the invalid amount to save',true);
  else showSaveState(ok?'All changes saved':'Some rows need attention',!ok);
  refreshRowState();
- if(!failure&&ok&&savableRows(which).some(r=>!priceBroken(r)))scheduleSave(which);
+ if(!failure&&ok&&savableRows(which).some(r=>!priceBroken(r)))scheduleSave(which,ready.length===100?0:900);
 }
 function confirmAction(title,text,rows){return new Promise(resolve=>{
  $('confirmTitle').textContent=title;$('confirmText').textContent=text;$('confirmCards').replaceChildren();
@@ -1434,7 +1439,11 @@ $('makeBatch').onclick=()=>task(async()=>{
 let quickPhotosState={},quickCard=null,quickURLs=[],quickPriceManual=false,quickType="";
 function quickCondition(){return quickType==='slab'?'Slab':$('quickCondition').value;}
 function sameCard(r,c,condition,slab){return r.cardId===c.id&&(c.id!==0||r.name.trim().toLowerCase()===c.name.trim().toLowerCase())&&r.condition===condition&&(condition!=='Slab'||(r.slab||'').trim().toUpperCase()===slab.trim().toUpperCase());}
-function quickMatches(){return [...stock.filter(r=>!r.sold),...drafts].filter(r=>sameCard(r,quickCard,quickCondition(),$('quickSlab').value));}
+function quickMatches(){
+ if(quickCard.id===0&&!quickCard.name)return [];
+ const condition=quickCondition(),slab=$('quickSlab').value;
+ return [...stock.filter(r=>!r.sold),...drafts].filter(r=>sameCard(r,quickCard,condition,slab));
+}
 function updateQuick(){
  $('quickSlabLabel').hidden=quickType!=='slab';$('quickConditionLabel').hidden=quickType!=='raw';
  const value=cents($('quickCost').value),jpy=$('quickCurrency').value==='JPY';
@@ -1444,7 +1453,6 @@ function updateQuick(){
 function clearQuickPhotos(){quickPhotosState={};for(const side of ['Front','Back'])$('quick'+side+'Rotate').hidden=true;quickURLs.forEach(URL.revokeObjectURL);quickURLs=[];for(const side of ['Front','Back']){$('quick'+side).value='';$('quick'+side+'Preview').hidden=true;$('quick'+side+'Preview').removeAttribute('src');}}
 function openQuickEntry(card){
  quickCard=card;$('quickCustomLabel').hidden=card.id!==0;$('quickGameLabel').hidden=card.id!==0;$('quickGame').value='pokemon';$('quickCustomName').value=card.id===0?card.name:'';quickPriceManual=false;clearQuickPhotos();$('quickName').textContent=card.name||'Custom listing / set';$('quickCost').value='';$('quickError').textContent='';
- const matches=quickMatches();$('quickPrice').value=matches.length?money(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';
  quickType='';$('quickTypeStep').hidden=false;$('quickDetails').hidden=true;$('quickAdd').hidden=true;
  const img=$('quickReference');img.hidden=true;img.removeAttribute('src');img.onerror=()=>{img.hidden=true;};if(card.brandId==='riftbound'&&!card.thumbnailUrl){referenceURL(card).then(url=>{if(url&&quickCard===card&&$('quickEntry').open){img.src=url;img.hidden=false;}});}
  try{const url=new URL(card.thumbnailUrl);if(url.protocol==='https:'&&(url.hostname==='cdn.snkrdunk.com'||(url.hostname==='bilgewatermarket.com'&&url.pathname.startsWith('/assets/')))){img.src=url.href;img.hidden=false;}}catch{}
@@ -1457,10 +1465,11 @@ $('addCustom').onclick=()=>{if(!busy)openQuickEntry({id:0,name:''});};
 $('quickCustomName').oninput=()=>{if(quickCard?.id===0){quickCard.name=$('quickCustomName').value.trim();updateQuick();}};
 $('quickPrice').oninput=()=>{quickPriceManual=true;};
 for(const id of ['quickCost','quickCurrency','quickCondition','quickSlab'])$(id).oninput=updateQuick;
-function showQuickPhoto(side,record){
- if(quickPhotosState[side]!==record||!$('quickEntry').open)return;
+async function showQuickPhoto(side,record){
+ const prepared=record.blob,preview=await record.preview;
+ if(quickPhotosState[side]!==record||!$('quickEntry').open||record.blob!==prepared)return;
  if(record.url){URL.revokeObjectURL(record.url);quickURLs=quickURLs.filter(u=>u!==record.url);}
- record.url=URL.createObjectURL(record.blob);quickURLs.push(record.url);
+ record.url=URL.createObjectURL(preview||prepared);quickURLs.push(record.url);
  const img=$('quick'+side+'Preview');img.src=record.url;img.hidden=false;
  $('quick'+side+'Rotate').hidden=false;$('quick'+side+'Rotate').disabled=false;
 }
@@ -1469,12 +1478,12 @@ for(const side of ['Front','Back']){
   const file=$('quick'+side).files[0],record={file};quickPhotosState[side]=record;
   $('quick'+side+'Preview').hidden=true;$('quick'+side+'Rotate').hidden=true;$('quickError').textContent='';
   if(!file)return;
-  record.job=portraitBlob(file).then(blob=>{record.blob=blob;record.error=null;showQuickPhoto(side,record);}).catch(e=>{record.error=e.message;if(quickPhotosState[side]===record)$('quickError').textContent=e.message;});
+  record.job=portraitBlob(file).then(photo=>{Object.assign(record,photo);record.error=null;void showQuickPhoto(side,record);}).catch(e=>{record.error=e.message;if(quickPhotosState[side]===record)$('quickError').textContent=e.message;});
  };
  $('quick'+side+'Rotate').onclick=()=>{
   const record=quickPhotosState[side];if(busy||!record?.blob)return;
   $('quick'+side+'Rotate').disabled=true;
-  record.job=turnPhoto(record.blob).then(blob=>{record.blob=blob;record.error=null;showQuickPhoto(side,record);}).catch(e=>{record.error=e.message;if(quickPhotosState[side]===record){$('quickError').textContent=e.message;$('quick'+side+'Rotate').disabled=false;}});
+  record.job=turnPhoto(record.blob).then(photo=>{Object.assign(record,photo);record.error=null;void showQuickPhoto(side,record);}).catch(e=>{record.error=e.message;if(quickPhotosState[side]===record){$('quickError').textContent=e.message;$('quick'+side+'Rotate').disabled=false;}});
  };
 }
 // The upload endpoint takes 5 MB, so the encode steps down until it fits
@@ -1495,7 +1504,7 @@ async function turnPhoto(blob){
  const image=await createImageBitmap(blob);
  // A turn is a third lossy pass on a photo already encoded twice, so it is
  // encoded close to the quality the server stores at rather than below it.
- try{const canvas=document.createElement('canvas');canvas.width=image.height;canvas.height=image.width;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0);return await encodeFitting(canvas,[0.92,0.86,0.8],'Could not rotate photo.');}finally{image.close();}
+ try{const canvas=document.createElement('canvas');canvas.width=image.height;canvas.height=image.width;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0);return await preparePhoto(canvas,[0.92,0.86,0.8],'Could not rotate photo.');}finally{image.close();}
 }
 $('quickCancel').onclick=()=>{if(busy)return;clearQuickPhotos();$('quickEntry').close();};
 $('quickEntry').oncancel=e=>{if(busy)e.preventDefault();else clearQuickPhotos();};
@@ -1511,18 +1520,29 @@ async function portraitBlob(file){
  // sees the photo.
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  if(rotate){ctx.translate(h,0);ctx.rotate(Math.PI/2);}ctx.drawImage(image,0,0,w,h);
- return await encodeFitting(canvas,[0.9,0.84,0.78],'Could not prepare photo.');
+ return await preparePhoto(canvas,[0.9,0.84,0.78],'Could not prepare photo.');
  }finally{image.close();}
 }
-// The uploaded file stays full size; only its table preview is reduced.
-async function previewBlob(blob){
- const image=await createImageBitmap(blob);
- try{const scale=Math.min(1,320/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const ctx=canvas.getContext('2d');ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,canvas.width,canvas.height);const preview=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.8));if(!preview)throw Error('Preview unavailable');return preview;}finally{image.close();}
+async function preparePhoto(canvas,qualities,message){
+ const blob=await encodeFitting(canvas,qualities,message);
+ // Reuse the oriented canvas for both previews instead of decoding the JPEG again.
+ const preview=smallPreview(canvas).catch(()=>null);
+ return {blob,preview};
 }
-async function entryPhoto(file,prepared=false){
- const blob=prepared?file:await portraitBlob(file),body=new FormData();body.append('photo',blob,'card.jpg');body.append('prepared','true');const result=await api('upload',body),session=token;
- void previewBlob(blob).then(preview=>{if(token===session&&!photos.has(result.photo))cachePhoto(result.photo,preview);}).catch(()=>{/* The server thumbnail is a safe fallback. */});
- return result.photo;
+async function smallPreview(source){
+ const scale=Math.min(1,320/Math.max(source.width,source.height)),canvas=document.createElement('canvas');
+ canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));
+ const ctx=canvas.getContext('2d');ctx.imageSmoothingQuality='high';ctx.drawImage(source,0,0,canvas.width,canvas.height);
+ return new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.8));
+}
+async function uploadPreparedPhoto({blob,preview}){
+ const body=new FormData(),session=token;
+ body.append('photo',blob,'card.jpg');body.append('prepared','true');
+ const {photo}=await api('upload',body);
+ void preview.then(image=>{
+  if(image&&token===session&&!photos.has(photo))cachePhoto(photo,image);
+ }).catch(()=>{});
+ return photo;
 }
 $('quickAdd').onclick=async()=>{
  if(busy||!quickType)return;$('quickError').textContent='';
@@ -1538,11 +1558,11 @@ $('quickAdd').onclick=async()=>{
   const prepared=await Promise.allSettled(records.map(async record=>{
    if(!record?.file)return null;
    await record.job;if(record.error)throw Error(record.error);if(!record.blob)throw Error('Choose the photo again.');
-   return record.blob;
+   return record;
   }));
   const preparationError=prepared.find(result=>result.status==='rejected');if(preparationError)throw preparationError.reason;
   $('quickError').textContent='Uploading photos…';
-  const uploads=await Promise.allSettled(prepared.map(result=>result.value?entryPhoto(result.value,true):''));
+  const uploads=await Promise.allSettled(prepared.map(result=>result.value?uploadPreparedPhoto(result.value):''));
   const failure=uploads.find(result=>result.status==='rejected');if(failure)throw failure.reason;
   const photoIDs=uploads.map(result=>result.value);
   while(photoIDs.length&&!photoIDs.at(-1))photoIDs.pop();
