@@ -48,6 +48,15 @@ const rowText=r=>r.name+' '+(r.costBatchLabel||'')+' '+(r.included||'')+' '+(r.n
 let buybackSelection=0;
 const shown=()=> (tab==='giveaway'||tab==='carousell'||tab==='central'||tab==='claims'||tab==='queue'||tab==='buybacks'||tab==='inbox'||tab==='cardshow')?[]:(tab==='drafts'?drafts:stock.filter(r=>tab==='sold'?r.sold:!r.sold)).filter(r=>!buybackSelection||r.costBatchId===buybackSelection).filter(r=>filterMatch(rowText(r),$('filter').value)).filter(r=>tab!=='stock'||!$('unassigned').checked||!batchFor(r));
 const money=c=>(Number(c||0)/100).toFixed(2);
+// One way to write an amount, because two was the bug: the figures at the
+// top said $14347.24, the row under them said S$5.00, and the dialog in
+// between said one of each about the same card. S$ is how a price is
+// written in this shop, so it is what every figure here says.
+const sgd=c=>'S$'+money(c);
+// A rehearsal is marked wherever its name is written. The two dialogs
+// that sell a card and delete it were the exceptions, so the last thing
+// between a walk and the books said nothing about being a test.
+const named=(test,name)=>(test?'[test] ':'')+name;
 const newID=()=>Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
 function status(text,error=false){$('status').textContent=text;$('status').style.background=error?'#8b3535':'#253d2c';}
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -79,7 +88,7 @@ async function load(preserve=false,initialData){
  // honestly be struck on: charging them against a margin that includes
  // other sellers' sales would overstate what it costs them to trade here.
  for(const [label,value] of [['Inventory cost',t.InventoryCost],['Sales',t.Revenue],['Gross margin',t.Revenue-t.SoldCost-(t.ConsignmentPayout||0)],['Stock cost basis',t.Spent],['House net profit',(house.Revenue||0)-(house.SoldCost||0)-(house.ConsignmentPayout||0)-(t.Expenses||0)],['Expenses (house)',t.Expenses||0],...(shared.Units?[['Shared stock cost',shared.InventoryCost||0],['Shared gross margin',(shared.Revenue||0)-(shared.SoldCost||0)-(shared.ConsignmentPayout||0)]]:[])]){
-  const card=el('div',undefined,'stat');card.append(el('span',label),el('strong','$'+money(value)));$('totals').append(card);
+  const card=el('div',undefined,'stat');card.append(el('span',label),el('strong',sgd(value)));$('totals').append(card);
  }
  // The tabs under these figures are not the same shop. Another seller's
  // stock and a claim sale's cards are counted here and listed nowhere
@@ -137,7 +146,7 @@ function renderGiveaway(){
  if(!$('giveawayNewEnds').value)$('giveawayNewEnds').value=sgtDate(Date.now()+7*864e5)+'T21:00';
  $('giveawayTabState').hidden=!g||g.status==='drawn';$('giveawayTabState').textContent=g?.status==='open'?'open':'to draw';
  if(!g){$('giveawayEntries').replaceChildren();$('giveawayEntryCount').textContent='';return;}
- $('giveawayTitle').textContent=(g.test?'[test] ':'')+g.title;
+ $('giveawayTitle').textContent=named(g.test,g.title);
  $('giveawayStatus').textContent={open:'Taking entries',ended:'Deadline passed',closed:'Closed · ready to draw',drawn:'Winners drawn'}[g.status]||g.status;
  $('giveawayStatus').className='claimStatus'+(g.status==='open'?' open':'')+(g.test?' test':'');
  const left=giveawayLeft(g.endsAt);
@@ -373,7 +382,7 @@ function renderQueue(){
   const row=el('div',undefined,'queueRow'),pick=document.createElement('input');pick.type='checkbox';pick.checked=queuePicked.has(s.id);pick.setAttribute('aria-label','Select '+s.name);
   pick.onchange=()=>{if(pick.checked)queuePicked.add(s.id);else queuePicked.delete(s.id);renderQueue();};
   const cond=s.condition==='Slab'?'Slab · '+s.slab:s.condition;
-  const info=el('div',undefined,'queueInfo');info.append(el('strong',(s.test?'[test] ':'')+s.name),el('span',cond+(s.costHidden?'':' · cost SGD '+money(s.cost)),'hint'));
+  const info=el('div',undefined,'queueInfo');info.append(el('strong',named(s.test,s.name)),el('span',cond+(s.costHidden?'':' · cost SGD '+money(s.cost)),'hint'));
   // The claim price is the one thing here still worth changing, so it is a
   // field rather than a line of text. Nothing is posted yet, so nobody is
   // reading the old number.
@@ -392,7 +401,7 @@ function renderQueue(){
 }
 async function releaseQueue(all){
  const rows=claims.filter(claimQueued).filter(s=>all||queuePicked.has(s.id));if(!rows.length)return;
- if(!await confirmAction('Release '+rows.length+(rows.length===1?' card':' cards')+' to the claim sale?','Each card is posted to the Claims topic with Claim and Offer buttons, one after another. Buyers can claim as soon as a post is up.',rows.map(s=>({name:(s.test?'[test] ':'')+s.name,price:s.price,sale:s.price}))))return;
+ if(!await confirmAction('Release '+rows.length+(rows.length===1?' card':' cards')+' to the claim sale?','Each card is posted to the Claims topic with Claim and Offer buttons, one after another. Buyers can claim as soon as a post is up.',rows.map(s=>({name:named(s.test,s.name),price:s.price,sale:s.price}))))return;
  const r=await claimWrite({action:'release',all,saleIds:all?[]:rows.map(s=>s.id),commandKey:newID()});
  queuePicked.clear();await loadClaims();status(r.released+(r.released===1?' card':' cards')+' released. Posting to the Claims topic now.');
 }
@@ -518,7 +527,7 @@ function renderClaims(){
  const shownClaims=claimShown();
  for(const sale of shownClaims){
   const card=el('article',undefined,'claimCard'),heading=el('div',undefined,'claimCardHeading'),pick=document.createElement('input');pick.type='checkbox';pick.className='claimPick';pick.checked=claimPicked.has(sale.id);pick.setAttribute('aria-label','Select claim #'+sale.id);pick.onchange=()=>{if(pick.checked)claimPicked.add(sale.id);else claimPicked.delete(sale.id);updateClaimBulk();};
-  const title=el('div',undefined,'claimTitle');title.append(pick,el('h3',(sale.test?'[test] ':'')+sale.name));heading.append(title,el('span',claimStatusLabel(sale.status),'claimStatus'));
+  const title=el('div',undefined,'claimTitle');title.append(pick,el('h3',named(sale.test,sale.name)));heading.append(title,el('span',claimStatusLabel(sale.status),'claimStatus'));
   const condition=sale.condition==='Slab'?'Slab · '+sale.slab:sale.condition;
   card.append(heading,el('p',condition+' · Fixed price SGD '+money(sale.price)+(sale.listPrice&&sale.listPrice!==sale.price?' (offer · listed SGD '+money(sale.listPrice)+')':'')),el('p',(sale.costHidden?'Another seller\'s card':'Cost SGD '+money(sale.cost)+(sale.inventoryOwner&&!limitedSeller?' · Seller '+sale.inventoryOwner+'\'s card':''))+' · Claim #'+sale.id,'hint'));
   if(sale.noOffers===true)card.append(el('p','Claim price only · no offers','claimPriceOnly'));
@@ -556,9 +565,9 @@ function renderResult(){
  const grid=el('div',undefined,'claimFigures');
  grid.append(
   figure('Cards claimed',String(r.claimed||0),(r.unsold||0)+' still open'),
-  figure('Sales','S$'+money(r.sales||0),'S$'+money(r.paid||0)+' paid so far'),
-  figure('Cost','S$'+money(r.cost||0)),
-  figure(profit<0?'Loss':'Profit','S$'+money(Math.abs(profit)),(r.sales?Math.round(profit/r.sales*100)+'% of sales':'')));
+  figure('Sales',sgd(r.sales||0),sgd(r.paid||0)+' paid so far'),
+  figure('Cost',sgd(r.cost||0)),
+  figure(profit<0?'Loss':'Profit',sgd(Math.abs(profit)),(r.sales?Math.round(profit/r.sales*100)+'% of sales':'')));
  box.append(grid);
  box.append(el('p','Test cards are left out. Mailing is not counted either way.','hint'));
 }
@@ -678,7 +687,7 @@ function renderDeliveries(){
  if(!shown.length){list.append(el('p','No deliveries yet. They appear when you end a claim sale.','empty'));return;}
  for(const d of shown){
   const card=el('article',undefined,'claimCard claimOrderCard'),heading=el('div',undefined,'claimCardHeading');
-  heading.append(el('h3',(d.test?'[test] ':'')+'Delivery #'+d.id+' · '+claimBuyer(d.buyerName,d.buyerId)),el('span',deliveryStatusLabel(d),'claimStatus'));card.append(heading);
+  heading.append(el('h3',named(d.test,'Delivery #'+d.id+' · '+claimBuyer(d.buyerName,d.buyerId))),el('span',deliveryStatusLabel(d),'claimStatus'));card.append(heading);
   for(const l of d.lines)card.append(el('p',l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
   card.append(el('p','Cards paid SGD '+money(d.cardsTotal)+' · '+(d.method==='mail'?(d.freeMail?'Mail · free mailing':'Mail · shipping SGD '+money(d.mailFee)+' · Ref SHIP'+d.id):d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
   if(d.address)card.append(el('p','Mail to: '+d.address,'claimAddress'));
@@ -722,7 +731,7 @@ function renderClaimOrders(){
  const visible=claimOrders.filter(o=>claimOrderOpen(o)||o.status==='paid'||Date.now()-Date.parse(o.updatedAt)<7*864e5);
  for(const o of visible){
   const card=el('article',undefined,'claimCard claimOrderCard'),heading=el('div',undefined,'claimCardHeading');
-  const batch=o.fulfilment==='later';heading.append(el('h3',((o.lines||[]).some(l=>l.test)?'[test] ':'')+(batch?'Claim bill #':'Order #')+o.id+' · '+claimBuyer(o.buyerName,o.buyerId)),el('span',claimOrderStatusLabel(o),'claimStatus'));card.append(heading);
+  const batch=o.fulfilment==='later';heading.append(el('h3',named((o.lines||[]).some(l=>l.test),(batch?'Claim bill #':'Order #')+o.id+' · '+claimBuyer(o.buyerName,o.buyerId))),el('span',claimOrderStatusLabel(o),'claimStatus'));card.append(heading);
   for(const l of o.lines)card.append(el('p','#'+l.saleId+' '+l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
   const delivery=o.fulfilment==='later'?(o.deliveryId?'Delivery #'+o.deliveryId:'Cards only · how they get them is chosen when the sale ends'):o.fulfilment==='mail'?'Mailing SGD '+money(o.shipping):o.fulfilment==='pickup'?(claimCheckout?.pickupArea?'Self pickup at '+claimCheckout.pickupArea:'Self pickup')+' · free':'Delivery not chosen yet';
   card.append(el('p','Cards SGD '+money(o.items)+' · '+delivery+' · Total SGD '+money(o.total)+' · Ref CLAIM'+o.id,'claimOrderTotal'));
@@ -782,19 +791,19 @@ function render(){
  rows.slice(inventoryPage*inventoryPageSize,(inventoryPage+1)*inventoryPageSize).forEach((r,index)=>{
   const tr=el('tr');tr.dataset.key=key(r);if(dirty.has(key(r)))tr.classList.add('dirty');
   const td=el('td',undefined,'rowSelect'),check=el('input');check.type='checkbox';check.checked=selected.has(key(r));check.setAttribute('aria-label','Select '+r.name);check.onchange=()=>{if(check.checked)selected.add(key(r));else selected.delete(key(r));counts();};td.append(check);tr.append(td);
-  const card=el('td',undefined,'card');card.append(el('strong',(r.test?'[test] ':'')+(r.name||'Unnamed card')),el('small',(r.stockId?'Listing #'+r.stockId:'Row '+(drafts.indexOf(r)+1))+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')+(r.test?' · test only, not for sale and not in your totals':'')));
+  const card=el('td',undefined,'card');card.append(el('strong',named(r.test,r.name||'Unnamed card')),el('small',(r.stockId?'Listing #'+r.stockId:'Row '+(drafts.indexOf(r)+1))+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')+(r.test?' · test only, not for sale and not in your totals':'')));
   if(r.cardId){const isRift=r.cardId>=2000000000;const source=el('a',isRift?'Bilgewater ↗':'SNKRDUNK ↗');source.href=isRift?(r.websiteUrl||'https://bilgewatermarket.com/cards'):('https://snkrdunk.com/apparels/'+r.cardId);source.target='_blank';source.rel='noopener noreferrer';card.append(source);}else{const title=el('input');title.value=r.name;title.maxLength=180;title.setAttribute('aria-label','Custom listing name');title.disabled=r.sold;title.onchange=()=>{r.name=title.value.trim();dirty.add(key(r));render();};card.append(title);card.append(gameSelect(r));}
   // A note travels with the card to every listing it appears on, so it is
   // edited here next to the card rather than per place it is shown.
   {const details=el('details'),summary=el('summary','Note'+(r.notes?' · '+r.notes.slice(0,40):''));details.append(summary);const input=el('textarea');input.value=r.notes||'';input.maxLength=300;input.rows=2;input.placeholder='Back has light edge whitening';input.setAttribute('aria-label','Note on '+(r.name||'this card'));input.disabled=r.sold;input.oninput=()=>change(r,'notes',input.value);details.append(input,el('small','Optional, and buyers see it. For what the photos do not show — edge wear, a print line, a crease.'));card.append(details);}
   if(r.stockId&&!r.consignment){const details=el('details'),summary=el('summary','Included cards'+(r.included?' · Added':''));details.append(summary);const input=el('textarea');input.value=r.included||'';input.maxLength=1000;input.rows=3;input.placeholder='Charmander, Charmeleon, Charizard';input.setAttribute('aria-label','Included cards');input.disabled=r.sold;input.oninput=()=>change(r,'included',input.value);details.append(input,el('small','Optional. Card names or numbers, separated by commas. Buyers can search these.'));card.append(details);}
   const batch=batchFor(r);if(batch){const badge=el('button','Carousell · '+batch.name+' · '+batch.status,'batchBadge');badge.onclick=()=>{tab='carousell';selected.clear();render();document.getElementById('batch-'+batch.id)?.scrollIntoView({block:'start'});};card.append(badge);}
-  const group=averages.get(inventoryGroupKey(r));if(group&&group.count+group.sold>1){const parts=[];if(group.count)parts.push(group.count+' copies · avg cost $'+money(Math.round(group.cost/group.count))+' · avg asking $'+money(Math.round(group.price/group.count)));if(group.sold)parts.push(group.sold+' sold · avg sale $'+money(Math.round(group.sales/group.sold)));card.append(el('small',parts.join(' / '),'groupAverages'));}
+  const group=averages.get(inventoryGroupKey(r));if(group&&group.count+group.sold>1){const parts=[];if(group.count)parts.push(group.count+' copies · avg cost '+sgd(Math.round(group.cost/group.count))+' · avg asking '+sgd(Math.round(group.price/group.count)));if(group.sold)parts.push(group.sold+' sold · avg sale '+sgd(Math.round(group.sales/group.sold)));card.append(el('small',parts.join(' / '),'groupAverages'));}
   // Somebody tapped Buy on this card's group post, so it is off the market
   // until it is paid for or let go. The release is here because the tap was
   // on a public post and nothing on that post can undo it.
   if(r.reserved&&!r.sold){const held=el('div',undefined,'heldRow');held.append(el('strong','🔒 Being bought by '+(r.reservedName||'a buyer')),el('small','Send them the bill in Telegram. Release it if they go quiet, and the post offers it again.'));const free=el('button','Release it','releaseHold');free.type='button';free.setAttribute('aria-label','Release '+(r.name||'this card')+' back onto the market');free.onclick=()=>task(()=>releaseHold(r));held.append(free);card.append(held);}
-  if(r.sold){const edit=el('button','Sold for S$'+money(r.sale)+' · Edit','editSoldPrice');edit.type='button';edit.setAttribute('aria-label','Edit sold price for '+r.name);edit.onclick=()=>task(()=>editSales([r]));card.append(edit);}
+  if(r.sold){const edit=el('button','Sold for '+sgd(r.sale)+' · Edit','editSoldPrice');edit.type='button';edit.setAttribute('aria-label','Edit sold price for '+r.name);edit.onclick=()=>task(()=>editSales([r]));card.append(edit);}
   if(r.costBatchId)card.append(el('small','Buyback · '+r.costBatchLabel+' · batch #'+r.costBatchId));
   if(r.tradeIn)card.append(el('small','Trade received · cost carried forward'));
   // Shared stock is any seller's to work on, so a row has to say whose books
@@ -960,7 +969,7 @@ function lotPreview(){
  // The remainder is spread a cent at a time over the cards at the front, which
  // is what the host does, so the parts add back up to what was paid.
  const base=Math.floor(total/n),extra=total%n;
- $('lotSummary').textContent=n+' card'+(n===1?'':'s')+' at $'+money(base)+' each'+(extra?', $'+money(base+1)+' for the first '+extra:'')+' \u00b7 $'+money(total)+' total';
+ $('lotSummary').textContent=n+' card'+(n===1?'':'s')+' at '+sgd(base)+' each'+(extra?', '+sgd(base+1)+' for the first '+extra:'')+' \u00b7 '+sgd(total)+' total';
 }
 $('lotTotal').oninput=lotPreview;
 $('lotPanel').ontoggle=()=>{if($('lotPanel').open&&token)task(loadLots);};
@@ -1020,7 +1029,7 @@ async function loadLots(){
  const d=await api('lot',{action:'settings'});
  buybackLots=d.lots||[];renderBuybacks();if(!$('lotLabel').value)$('lotLabel').value=d.nextLabel||'';
  $('lots').replaceChildren();
- for(const l of (d.lots||[]).slice(0,8))$('lots').append(el('p',l.label+' \u00b7 '+l.units+' card'+(l.units===1?'':'s')+' for $'+money(l.total)+' \u00b7 '+l.held+' still held'+(l.shared?' \u00b7 shared':''),'hint'));
+ for(const l of (d.lots||[]).slice(0,8))$('lots').append(el('p',l.label+' \u00b7 '+l.units+' card'+(l.units===1?'':'s')+' for '+sgd(l.total)+' \u00b7 '+l.held+' still held'+(l.shared?' \u00b7 shared':''),'hint'));
 }
 $('createLot').onclick=()=>task(async()=>{
  const n=lotEntries.length,total=lotCents(),shared=$('lotShared').checked;
@@ -1125,7 +1134,10 @@ async function autosave(which){
 }
 function confirmAction(title,text,rows){return new Promise(resolve=>{
  $('confirmTitle').textContent=title;$('confirmText').textContent=text;$('confirmCards').replaceChildren();
- rows.forEach(r=>$('confirmCards').append(el('div',(r.stockId?'#'+r.stockId+' ':'')+r.name+' · '+(title.startsWith('Mark')?'sold $'+money(r.sale):'$'+money(r.price)))));
+ // A sold card is quoted at what it sold for. A delete used to ask about
+ // one at its asking price -- a number nobody paid, and the last figure
+ // anybody sees before the row goes for good.
+ rows.forEach(r=>$('confirmCards').append(el('div',(r.stockId?'#'+r.stockId+' ':'')+named(r.test,r.name)+' · '+(title.startsWith('Mark')||r.sold?'sold '+sgd(r.sale):sgd(r.price)))));
  $('confirm').showModal();
  const finish=value=>{$('confirm').close();resolve(value);};
  $('confirmNo').onclick=()=>finish(false);$('confirmYes').onclick=()=>finish(true);$('confirm').oncancel=e=>{e.preventDefault();finish(false);};
@@ -1186,7 +1198,7 @@ function renderCentral(){
  // field names, so each figure is read under both spellings.
  $('centralTotals').replaceChildren();
  if(t)for(const [label,value] of [['On the shelf',t.inventoryCost??t.InventoryCost],['Sales',t.revenue??t.Revenue],['Spent',t.spent??t.Spent]]){
-  const box=el('div',undefined,'stat');box.append(el('span',label),el('strong','$'+money(value)));$('centralTotals').append(box);
+  const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',sgd(value)));$('centralTotals').append(box);
  }
  if(t){const box=el('div',undefined,'stat');box.append(el('span','Cards'),el('strong',String((t.units??t.Units)??0)));$('centralTotals').append(box);}
  const picker=$('centralSeller');
@@ -1206,16 +1218,16 @@ function renderCentral(){
   const card=el('td',undefined,'card');card.append(el('strong',r.name||'Unnamed card'),el('small','Listing #'+r.stockId+(r.cardId?' · SNKR '+r.cardId:' · Custom listing')+(r.included?' · includes '+r.included:'')));
   tr.append(card);
   tr.append(el('td',[r.condition,r.slab].filter(Boolean).join(' · ')));
-  tr.append(el('td','S$'+money(r.cost)));
-  tr.append(el('td','S$'+money(r.sold?r.sale:r.price)));
+  tr.append(el('td',sgd(r.cost)));
+  tr.append(el('td',sgd(r.sold?r.sale:r.price)));
   tr.append(el('td',r.sold?'Sold':r.consignment?'Consignment':'Available'));
   $('centralRows').append(tr);
  }
 }
 function renderAccounting(){
  $('expenses').replaceChildren();$('trades').replaceChildren();
- for(const e of expenses){const row=el('p');row.append(el('span',e.date+' · '+e.description+' · S$'+money(e.amount)+' '));const edit=el('button','Edit'),remove=el('button','Delete');edit.onclick=()=>editExpense(e);remove.onclick=()=>task(async()=>{if(!await confirmAction('Delete expense?',e.description+' · S$'+money(e.amount),[]))return;await api('expense',{expense:e,remove:true});await load(true);status('Expense removed.');});row.append(edit,remove);$('expenses').append(row);}
- for(const t of trades){const d=el('details');d.append(el('summary',t.date.slice(0,10)+' · Trade · cost S$'+money(t.basis)));d.append(el('p','Cash '+(t.cash<0?'received':'paid')+': S$'+money(Math.abs(t.cash))+(t.details.note?' · '+t.details.note:'')));for(const r of t.details.out)d.append(el('p','Gave: '+r.name+' · cost S$'+money(r.cost)));for(const r of t.details.in)d.append(el('p','Received: '+r.name+' · carried cost S$'+money(r.cost)));$('trades').append(d);}
+ for(const e of expenses){const row=el('p');row.append(el('span',e.date+' · '+e.description+' · '+sgd(e.amount)+' '));const edit=el('button','Edit'),remove=el('button','Delete');edit.onclick=()=>editExpense(e);remove.onclick=()=>task(async()=>{if(!await confirmAction('Delete expense?',e.description+' · '+sgd(e.amount),[]))return;await api('expense',{expense:e,remove:true});await load(true);status('Expense removed.');});row.append(edit,remove);$('expenses').append(row);}
+ for(const t of trades){const d=el('details');d.append(el('summary',t.date.slice(0,10)+' · Trade · cost '+sgd(t.basis)));d.append(el('p','Cash '+(t.cash<0?'received':'paid')+': '+sgd(Math.abs(t.cash))+(t.details.note?' · '+t.details.note:'')));for(const r of t.details.out)d.append(el('p','Gave: '+r.name+' · cost '+sgd(r.cost)));for(const r of t.details.in)d.append(el('p','Received: '+r.name+' · carried cost '+sgd(r.cost)));$('trades').append(d);}
 }
 function editExpense(existing){task(async()=>{
  const expense=await new Promise(resolve=>{
@@ -1233,8 +1245,8 @@ $('trade').onclick=()=>task(async()=>{
  if(drafts.some(r=>dirty.has(key(r))))throw Error('Save your incoming drafts first, then return here.');
  const basis=outgoing.reduce((n,r)=>n+r.cost,0),chosen=new Set();
  const result=await new Promise(resolve=>{
-  $('tradeSummary').textContent='Giving '+outgoing.length+' cards · original cost S$'+money(basis);$('tradeDrafts').replaceChildren();$('tradeCash').value='0';$('tradeNote').value='';$('tradeError').textContent='';
-  for(const d of drafts){const label=el('label',undefined,'check'),check=el('input');check.type='checkbox';check.onchange=()=>check.checked?chosen.add(d.id):chosen.delete(d.id);label.append(check,el('span',d.name+' · split value S$'+money(d.cost)));$('tradeDrafts').append(label);}
+  $('tradeSummary').textContent='Giving '+outgoing.length+' cards · original cost '+sgd(basis);$('tradeDrafts').replaceChildren();$('tradeCash').value='0';$('tradeNote').value='';$('tradeError').textContent='';
+  for(const d of drafts){const label=el('label',undefined,'check'),check=el('input');check.type='checkbox';check.onchange=()=>check.checked?chosen.add(d.id):chosen.delete(d.id);label.append(check,el('span',d.name+' · split value '+sgd(d.cost)));$('tradeDrafts').append(label);}
   const done=v=>{$('tradeDialog').close();resolve(v);};$('tradeCancel').onclick=()=>done(null);$('tradeDialog').oncancel=e=>{e.preventDefault();done(null);};
   $('tradeReview').onclick=()=>{const value=cents($('tradeCash').value),cash=$('tradeCashMode').value==='received'?-value:value;const incoming=drafts.filter(d=>chosen.has(d.id)).sort((a,b)=>a.id.localeCompare(b.id));if(value===null||!incoming.length||incoming.length>100||basis+cash<0||basis+cash>9999999999){$('tradeError').textContent='Choose 1–100 incoming cards and a valid cash amount. Cash received cannot exceed original cost.';return;}if(incoming.some(d=>d.price<=0)){$('tradeError').textContent='Each incoming draft needs an asking price.';return;}done({incoming,cash,note:$('tradeNote').value.trim()});};
   $('tradeDialog').showModal();
@@ -1242,7 +1254,7 @@ $('trade').onclick=()=>task(async()=>{
  if(!result)return;
  const {incoming,cash,note}=result,total=basis+cash,weight=incoming.reduce((n,r)=>n+BigInt(r.cost),0n);
  const amounts=incoming.map(r=>Number(weight?BigInt(total)*BigInt(r.cost)/weight:BigInt(total)/BigInt(incoming.length)));for(let i=0,left=total-amounts.reduce((a,b)=>a+b,0);i<left;i++)amounts[i%amounts.length]++;
- const summary='Original cost S$'+money(basis)+' '+(cash<0?'− cash received ':'+ cash paid ')+'S$'+money(Math.abs(cash))+' = S$'+money(total)+' carried forward.\n\n'+incoming.map((r,i)=>r.name+' → cost S$'+money(amounts[i])).join('\n')+'\n\nOutgoing listings will close; incoming listings will be published. No sale is recorded.';
+ const summary='Original cost '+sgd(basis)+' '+(cash<0?'− cash received ':'+ cash paid ')+sgd(Math.abs(cash))+' = '+sgd(total)+' carried forward.\n\n'+incoming.map((r,i)=>r.name+' → cost '+sgd(amounts[i])).join('\n')+'\n\nOutgoing listings will close; incoming listings will be published. No sale is recorded.';
  if(!await confirmAction('Confirm trade?',summary,[]))return;
  await api('trade',{id:newID(),out:outgoing.map(r=>({stockId:r.stockId,revision:r.revision})),in:incoming.map(r=>({id:r.id,revision:r.revision})),cash,note});await load();status('Trade recorded. Costs carried into received cards.');
 });
@@ -1296,7 +1308,7 @@ async function editSales(rows){
  $('saleEntry').querySelector('h2').textContent=correcting?'Edit sold price':'Actual sale price';$('saleReview').textContent=correcting?'Review changes':'Review sale';
  const prices=await new Promise(resolve=>{
   $('saleInputs').replaceChildren();$('saleError').textContent='';const inputs=[];
-  for(const r of rows){const label=el('label',r.name+' · asking S$'+money(r.price)),input=el('input');input.inputMode='decimal';input.placeholder='Actual sold price';input.setAttribute('aria-label','Sale price for '+r.name);input.value=r.saleDirty||r.sold?money(r.sale):'';label.append(input);$('saleInputs').append(label);inputs.push(input);}
+  for(const r of rows){const label=el('label',named(r.test,r.name)+' · asking '+sgd(r.price)),input=el('input');input.inputMode='decimal';input.placeholder='Actual sold price';input.setAttribute('aria-label','Sale price for '+r.name);input.value=r.saleDirty||r.sold?money(r.sale):'';label.append(input);$('saleInputs').append(label);inputs.push(input);}
   const done=v=>{$('saleEntry').close();resolve(v);};$('saleCancel').onclick=()=>done(null);$('saleEntry').oncancel=e=>{e.preventDefault();done(null);};
   $('saleReview').onclick=()=>{const values=inputs.map(input=>input.value.trim()===''?null:cents(input.value));if(values.some(v=>v===null)){$('saleError').textContent='Enter a valid SGD price for every card. Use 0 only for a write-off.';return;}done(values);};
   $('saleEntry').showModal();inputs[0]?.focus();
@@ -1340,7 +1352,7 @@ function renderCollections(){
    await api('carousell',{action:'collection-posted',id:c.id,revision:c.revision,name:c.name,rules:c.rules,url:c.url});await load(true);status('Carousell status saved.');
   });actions.append(posted);box.append(actions);
   const items=el('details');items.append(el('summary','Cards in this collection'));
-  c.items.forEach(i=>items.append(el('p',i.name+' · S$'+money(i.price)+' · '+i.condition,'hint')));box.append(items);
+  c.items.forEach(i=>items.append(el('p',i.name+' · '+sgd(i.price)+' · '+i.condition,'hint')));box.append(items);
   const details=el('details');details.append(el('summary','Collection details'));
   const name=el('input');name.value=c.name;name.maxLength=150;name.setAttribute('aria-label','Collection name');
   const rules=el('textarea');rules.value=c.rules;rules.rows=3;rules.setAttribute('aria-label','Collection rules, one search per line');
@@ -1370,7 +1382,7 @@ function renderBatches(){
    await api('carousell',{action:'posted',id:batch.id,revision:batch.revision,name:batch.name,url:batch.url});await load(true);status('Carousell status saved.');
   });actions.append(posted);box.append(actions);
   const items=el('details');items.append(el('summary','Cards in this batch'));
-  batch.items.forEach(i=>items.append(el('p',i.name+' · S$'+money(i.price)+' · '+(i.deleted?'Deleted':i.sold?'Sold':'Available'),'hint')));box.append(items);
+  batch.items.forEach(i=>items.append(el('p',i.name+' · '+sgd(i.price)+' · '+(i.deleted?'Deleted':i.sold?'Sold':'Available'),'hint')));box.append(items);
   const details=el('details');details.append(el('summary','Batch details'));
   const name=el('input');name.value=batch.name;name.maxLength=150;name.setAttribute('aria-label','Batch name');const url=el('input');url.value=batch.url;url.type='url';url.placeholder='Carousell listing URL (optional)';url.setAttribute('aria-label','Carousell listing URL');
   const save=el('button','Save details');save.dataset.action='details';save.onclick=()=>task(async()=>{await api('carousell',{action:'save',id:batch.id,revision:batch.revision,name:name.value,url:url.value});await load(true);status('Batch details saved.');});
@@ -1408,8 +1420,8 @@ function quickMatches(){return [...stock.filter(r=>!r.sold),...drafts].filter(r=
 function updateQuick(){
  $('quickSlabLabel').hidden=quickType!=='slab';$('quickConditionLabel').hidden=quickType!=='raw';
  const value=cents($('quickCost').value),jpy=$('quickCurrency').value==='JPY';
- $('quickConverted').textContent=jpy?(entryRate>0?(value===null?'':'Stored cost: S$'+money(Math.round(value/entryRate)))+' · 1 SGD = '+entryRate+' JPY':'Set the JPY conversion rate before adding this card.'):'Cost stays in SGD.';
- const matches=quickMatches();if(!quickPriceManual)$('quickPrice').value=matches.length?money(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';$('quickAverage').textContent=matches.length?matches.length+' matching copies · average cost S$'+money(Math.round(matches.reduce((n,r)=>n+r.cost,0)/matches.length))+' · average asking S$'+money(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';
+ $('quickConverted').textContent=jpy?(entryRate>0?(value===null?'':'Stored cost: '+sgd(Math.round(value/entryRate)))+' · 1 SGD = '+entryRate+' JPY':'Set the JPY conversion rate before adding this card.'):'Cost stays in SGD.';
+ const matches=quickMatches();if(!quickPriceManual)$('quickPrice').value=matches.length?money(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';$('quickAverage').textContent=matches.length?matches.length+' matching copies · average cost '+sgd(Math.round(matches.reduce((n,r)=>n+r.cost,0)/matches.length))+' · average asking '+sgd(Math.round(matches.reduce((n,r)=>n+r.price,0)/matches.length)):'';
 }
 function clearQuickPhotos(){quickPhotosState={};for(const side of ['Front','Back'])$('quick'+side+'Rotate').hidden=true;quickURLs.forEach(URL.revokeObjectURL);quickURLs=[];for(const side of ['Front','Back']){$('quick'+side).value='';$('quick'+side+'Preview').hidden=true;$('quick'+side+'Preview').removeAttribute('src');}}
 function openQuickEntry(card){
@@ -1683,14 +1695,14 @@ async function openMarketplaceSettings(){
 }
 async function openMarketplaceListing(r){
  const session=token;const data=await api('marketplace',{action:'listing',stockId:r.stockId});if(!token||token!==session)return;marketShell('Marketplaces · #'+r.stockId);
- marketDialog.append(el('h3',r.name),el('p',(r.slab||r.condition)+' · S$'+money(r.price)+' · '+(r.sold?'Sold':'Available')));
+ marketDialog.append(el('h3',r.name),el('p',(r.slab||r.condition)+' · '+sgd(r.price)+' · '+(r.sold?'Sold':'Available')));
  const batch=batchFor(r);if(batch){const panel=el('section',undefined,'marketSection');panel.append(el('h3','Carousell batch · '+batch.name),el('p',batch.status),el('pre',batch.description,'marketPreview'));if(batch.url)safeMarketLink(panel,batch.url,'Open batch listing ↗');marketDialog.append(panel);}
  const form=el('section',undefined,'marketSection');form.append(el('h3','Carousell listing'),el('p','Record the public listing and your notes here. Saving tracks it; it does not post to or edit Carousell.','hint'));
  const l=data.carousell;const label=el('label','Carousell status'),state=el('select');state.setAttribute('aria-label','Carousell status');for(const [value,text] of [['not_listed','Not listed'],['draft','Draft'],['listed','Listed'],['sold','Marked sold on Carousell']]){const o=el('option',text);o.value=value;state.append(o);}state.value=l.status;label.append(state);form.append(label);
  const url=marketField(form,'Carousell listing URL',l.url),title=marketField(form,'Carousell listing title',l.title),notes=marketField(form,'Listing details / notes',l.notes,true);title.maxLength=180;notes.maxLength=1500;url.placeholder='https://www.carousell.sg/p/…';
  if(l.url)safeMarketLink(form,l.url,'Open Carousell listing ↗');if(r.sold&&l.status==='listed')form.append(el('p','Action needed: this card is sold in your inventory. Mark its Carousell listing sold, then update the status here.','rowerror'));
  marketAction(form,'Save Carousell details',async()=>{await api('marketplace',{action:'link',link:{...l,url:url.value.trim(),title:title.value.trim(),notes:notes.value.trim(),status:state.value}});status('Carousell details saved.');await openMarketplaceListing(r);});
- const description=r.name+'\n'+(r.slab||r.condition)+' · S$'+money(r.price)+'\n\nPhotos / private offer: https://t.me/'+bot+'?start=listing_'+r.stockId+'\n\n'+(data.template||'');
+ const description=r.name+'\n'+(r.slab||r.condition)+' · '+sgd(r.price)+'\n\nPhotos / private offer: https://t.me/'+bot+'?start=listing_'+r.stockId+'\n\n'+(data.template||'');
  const prepared=el('details');prepared.append(el('summary','Prepared listing description'),el('pre',description,'marketPreview'));marketAction(prepared,'Copy listing description',async()=>{await navigator.clipboard.writeText(description);status('Listing description copied.');});form.append(prepared);marketDialog.append(form);
  const telegram=el('section',undefined,'marketSection');telegram.append(el('h3','Telegram delivery'));
  if(!data.telegram?.length)telegram.append(el('p','No external marketplace posts tracked for this listing. Enable destinations before publishing new listings.'));
@@ -1836,7 +1848,7 @@ function renderCardshow(){
   const cards=el('ul',undefined,'holdCards');
   for(const card of person.cards){
    const row=el('li');
-   row.append(el('span',(card.test?'[test] ':'')+card.name+(card.slab?' · '+card.slab:'')+(card.condition?' · '+card.condition:'')));
+   row.append(el('span',named(card.test,card.name)+(card.slab?' · '+card.slab:'')+(card.condition?' · '+card.condition:'')));
    row.append(el('span',(card.source==='claim'?'claim sale':'shop'),'holdWhere'));
    cards.append(row);
   }
