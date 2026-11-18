@@ -100,7 +100,25 @@ async function load(preserve=false,initialData){
   :'These figures are the whole shop: '+count(t.Units||0,'card')+' across every seller and sale mode, rehearsals left out.',
   limitedSeller||!elsewhere?'':elsewhere+' of them '+(elsewhere===1?'is':'are')+' not in the tabs below.',
   rehearsals?count(rehearsals,'rehearsal')+' listed below '+(rehearsals===1?'is':'are')+' in neither.':''].filter(Boolean).join(' ');
- pending.forEach(r=>{const target=r.stockId?stock:drafts;const index=target.findIndex(x=>key(x)===key(r));if(index<0)target.push(r);else target[index]=r;dirty.add(key(r));});
+ // An edit in progress survives a reload, but the bookkeeping under it
+ // must not. A row keeps what was typed into it and takes back the
+ // revision that edit was made against, together with whatever the row
+ // has become since -- a hold somebody tapped Buy for, a sale recorded
+ // elsewhere. Keeping the old revision was a dead end: Mark sold on a
+ // card a buyer had just taken answered "listing changed; reload", and
+ // the reload put the very revision that was out of date back on the row,
+ // so pressing it again failed the same way and only closing the app
+ // helped. A row whose revision moved has been reloaded, which is what
+ // the message asked for, so the message goes with it.
+ pending.forEach(r=>{
+  const target=r.stockId?stock:drafts,index=target.findIndex(x=>key(x)===key(r));
+  if(index<0){target.push(r);dirty.add(key(r));return;}
+  const fresh=target[index];
+  if(fresh.revision!==r.revision)r.error='';
+  r.revision=fresh.revision;r.reserved=fresh.reserved;r.reservedName=fresh.reservedName;r.sold=fresh.sold;
+  if(fresh.sold&&!r.saleDirty)r.sale=fresh.sale;
+  target[index]=r;dirty.add(key(r));
+ });
  render();
 }
 let ledgerData=null,ledgerLimit=30,ledgerRetry=null,ledgerAsked=false;
@@ -108,17 +126,17 @@ function clearLedger(){ledgerData=null;ledgerRetry=null;ledgerAsked=false;ledger
 function renderLedger(){
  if(!ledgerData)return;
  const {members,balances,entries}=ledgerData;$('ledgerBalances').replaceChildren();
- balances.forEach((b,i)=>{const card=el('div',undefined,'stat');card.append(el('strong',members[i]),el('p','Paid for shop: SGD '+money(b.paid)),el('p','One-third share: SGD '+money(b.share)),el('p','Repaid: SGD '+money(b.sent)+' · Received: SGD '+money(b.received)),el('strong','Net contributed: SGD '+money(b.net)),el('p',b.balance>0?'Owed back: SGD '+money(b.balance):b.balance<0?'Still owes: SGD '+money(-b.balance):'Settled'));$('ledgerBalances').append(card);});
+ balances.forEach((b,i)=>{const card=el('div',undefined,'stat');card.append(el('strong',members[i]),el('p','Paid for shop: '+sgd(b.paid)),el('p','One-third share: '+sgd(b.share)),el('p','Repaid: '+sgd(b.sent)+' · Received: '+sgd(b.received)),el('strong','Net contributed: '+sgd(b.net)),el('p',b.balance>0?'Owed back: '+sgd(b.balance):b.balance<0?'Still owes: '+sgd(-b.balance):'Settled'));$('ledgerBalances').append(card);});
  $('ledgerSettlement').replaceChildren(el('h3','To settle current balances'));
  const owing=balances.map(b=>Math.max(0,-b.balance)),owed=balances.map(b=>Math.max(0,b.balance));let transfers=0;
- for(let from=0;from<3;from++)for(let to=0;to<3;to++){const amount=Math.min(owing[from],owed[to]);if(amount){$('ledgerSettlement').append(el('p',members[from]+' → '+members[to]+': SGD '+money(amount)));owing[from]-=amount;owed[to]-=amount;transfers++;}}
+ for(let from=0;from<3;from++)for(let to=0;to<3;to++){const amount=Math.min(owing[from],owed[to]);if(amount){$('ledgerSettlement').append(el('p',members[from]+' → '+members[to]+': '+sgd(amount)));owing[from]-=amount;owed[to]-=amount;transfers++;}}
  if(!transfers)$('ledgerSettlement').append(el('p','Everyone is settled.'));
  const query=$('ledgerFilter').value.toLowerCase(),matching=entries.filter(e=>(e.description+' '+e.date+' '+members[e.payer]+' '+(e.kind==='repayment'?members[e.recipient]:'')).toLowerCase().includes(query));
  $('ledgerHistory').replaceChildren();
  for(const e of matching.slice(0,ledgerLimit)){
-  const row=el('div',undefined,'ledgerEntry');row.append(el('strong','#'+e.id+' · '+e.date+' · '+members[e.payer]+(e.kind==='repayment'?' → '+members[e.recipient]:' paid for shop')+' · SGD '+money(e.amount)),el('p',e.description));
+  const row=el('div',undefined,'ledgerEntry');row.append(el('strong','#'+e.id+' · '+e.date+' · '+members[e.payer]+(e.kind==='repayment'?' → '+members[e.recipient]:' paid for shop')+' · '+sgd(e.amount)),el('p',e.description));
   if(e.kind==='payment'&&e.splitMask&&e.splitMask!==7)row.append(el('small','Split with '+members.filter((_,i)=>e.splitMask&(1<<i)).join(', ')));
-  if(e.voided)row.append(el('span','Voided — excluded from balances'));else {const button=el('button','Void entry');button.type='button';button.onclick=()=>task(async()=>{if(!await confirmAction('Void ledger entry?','This removes SGD '+money(e.amount)+' from the balances and keeps the original in history.',[]))return;ledgerData=await api('ledger',{action:'void',id:e.id});renderLedger();});row.append(button);}
+  if(e.voided)row.append(el('span','Voided — excluded from balances'));else {const button=el('button','Void entry');button.type='button';button.onclick=()=>task(async()=>{if(!await confirmAction('Void ledger entry?','This removes '+sgd(e.amount)+' from the balances and keeps the original in history.',[]))return;ledgerData=await api('ledger',{action:'void',id:e.id});renderLedger();});row.append(button);}
   $('ledgerHistory').append(row);
  }
  if(!matching.length)$('ledgerHistory').append(el('p','No ledger entries yet.'));
@@ -172,7 +190,7 @@ $('ledgerFilter').oninput=()=>{ledgerLimit=30;renderLedger();};
 $('ledgerMore').onclick=()=>{ledgerLimit+=30;renderLedger();};
 $('ledgerForm').onsubmit=e=>{e.preventDefault();task(async()=>{
  const value=$('ledgerAmount').value.trim();if(!/^\d+(\.\d{1,2})?$/.test(value))throw Error('Enter a positive SGD amount with at most two decimal places.');
- const amount=Math.round(Number(value)*100);if(!Number.isSafeInteger(amount)||amount<=0||amount>1000000000)throw Error('Amount must be between SGD 0.01 and 10,000,000.00.');
+ const amount=Math.round(Number(value)*100);if(!Number.isSafeInteger(amount)||amount<=0||amount>1000000000)throw Error('Amount must be between S$0.01 and S$10,000,000.00.');
  const entry={kind:$('ledgerKind').value,payer:Number($('ledgerPayer').value),recipient:$('ledgerKind').value==='repayment'?Number($('ledgerRecipient').value):0,amount,date:$('ledgerDate').value,description:$('ledgerDescription').value.trim()};
  if(!entry.description||!entry.date)throw Error('Enter a date and description.');if(entry.kind==='repayment'&&entry.payer===entry.recipient)throw Error('Choose two different partners for a repayment.');
  const payload=JSON.stringify(entry);if(!ledgerRetry||ledgerRetry.payload!==payload)ledgerRetry={payload,key:crypto.randomUUID()};
@@ -205,7 +223,7 @@ $('releaseListings').onclick=()=>task(async()=>{
  const send=el('button','Release selected (0)','primary'),cancel=el('button','Cancel');send.disabled=true;
  const update=()=>{send.textContent='Release selected ('+chosen.size+')';send.disabled=!chosen.size;all.checked=items.length>0&&chosen.size===items.length;all.indeterminate=chosen.size>0&&chosen.size<items.length;};
  for(const item of items){
-  const row=el('label',` #${item.id} ${item.name} · ${item.condition} ${item.slab||''} · SGD ${money(item.price)}`),check=el('input');check.type='checkbox';
+  const row=el('label',` #${item.id} ${item.name} · ${item.condition} ${item.slab||''} · ${sgd(item.price)}`),check=el('input');check.type='checkbox';
   row.style.display='block';check.setAttribute('aria-label','Release '+item.name);check.onchange=()=>{check.checked?chosen.add(item.id):chosen.delete(item.id);update();};checks.push([check,item.id]);row.prepend(check);list.append(row);
  }
  all.onchange=()=>{for(const [check,id] of checks){check.checked=all.checked;all.checked?chosen.add(id):chosen.delete(id);}update();};
@@ -331,7 +349,7 @@ function renderPosterOrder(){
  $('claimPosterViewLabel').hidden=posterRows.length<2;
  posterRows.forEach((card,i)=>{
   if(posterRows.length>1)view.add(new Option(card.name,String(i)));
-  const row=el('li'),name=el('span',card.name+' · SGD '+money(card.price));
+  const row=el('li'),name=el('span',card.name+' · '+sgd(card.price));
   row.append(name);
   for(const [step,label] of [[-1,'Move up'],[1,'Move down']]){
    const button=el('button',label);
@@ -370,7 +388,7 @@ function renderQueue(){
  for(const id of [...queuePicked])if(!rows.some(s=>s.id===id))queuePicked.delete(id);
  $('queueCount').textContent=rows.length;
  const total=rows.reduce((t,s)=>t+s.price,0);
- $('queueSummary').textContent=rows.length?rows.length+(rows.length===1?' card':' cards')+' · SGD '+money(total)+(queuePicked.size?' · '+queuePicked.size+' selected':''):'';
+ $('queueSummary').textContent=rows.length?rows.length+(rows.length===1?' card':' cards')+' · '+sgd(total)+(queuePicked.size?' · '+queuePicked.size+' selected':''):'';
  $('queueAll').checked=rows.length>0&&queuePicked.size===rows.length;$('queueAll').disabled=!rows.length;
  $('queueReleaseAll').textContent='Release all ('+rows.length+')';$('queueReleaseAll').disabled=busy||!rows.length;
  $('queueRelease').textContent='Release selected ('+queuePicked.size+')';$('queueRelease').disabled=busy||!queuePicked.size;
@@ -382,7 +400,7 @@ function renderQueue(){
   const row=el('div',undefined,'queueRow'),pick=document.createElement('input');pick.type='checkbox';pick.checked=queuePicked.has(s.id);pick.setAttribute('aria-label','Select '+s.name);
   pick.onchange=()=>{if(pick.checked)queuePicked.add(s.id);else queuePicked.delete(s.id);renderQueue();};
   const cond=s.condition==='Slab'?'Slab · '+s.slab:s.condition;
-  const info=el('div',undefined,'queueInfo');info.append(el('strong',named(s.test,s.name)),el('span',cond+(s.costHidden?'':' · cost SGD '+money(s.cost)),'hint'));
+  const info=el('div',undefined,'queueInfo');info.append(el('strong',named(s.test,s.name)),el('span',cond+(s.costHidden?'':' · cost '+sgd(s.cost)),'hint'));
   // The claim price is the one thing here still worth changing, so it is a
   // field rather than a line of text. Nothing is posted yet, so nobody is
   // reading the old number.
@@ -408,7 +426,7 @@ async function releaseQueue(all){
 async function repriceQueued(s,price){
  await claimWrite({action:'reprice',saleId:s.id,revision:s.revision,commandKey:newID(),price});
  await loadClaims();
- status(s.name+' is now SGD '+money(price)+'.');
+ status(s.name+' is now '+sgd(price)+'.');
 }
 async function queueRemove(s){
  if(!await confirmAction('Take this card out of the claim queue?','It leaves the queue and comes back as a normal listing under Available. Nothing was posted for it.',[{name:s.name,price:s.price,sale:s.price}]))return;
@@ -529,7 +547,7 @@ function renderClaims(){
   const card=el('article',undefined,'claimCard'),heading=el('div',undefined,'claimCardHeading'),pick=document.createElement('input');pick.type='checkbox';pick.className='claimPick';pick.checked=claimPicked.has(sale.id);pick.setAttribute('aria-label','Select claim #'+sale.id);pick.onchange=()=>{if(pick.checked)claimPicked.add(sale.id);else claimPicked.delete(sale.id);updateClaimBulk();};
   const title=el('div',undefined,'claimTitle');title.append(pick,el('h3',named(sale.test,sale.name)));heading.append(title,el('span',claimStatusLabel(sale.status),'claimStatus'));
   const condition=sale.condition==='Slab'?'Slab · '+sale.slab:sale.condition;
-  card.append(heading,el('p',condition+' · Fixed price SGD '+money(sale.price)+(sale.listPrice&&sale.listPrice!==sale.price?' (offer · listed SGD '+money(sale.listPrice)+')':'')),el('p',(sale.costHidden?'Another seller\'s card':'Cost SGD '+money(sale.cost)+(sale.inventoryOwner&&!limitedSeller?' · Seller '+sale.inventoryOwner+'\'s card':''))+' · Claim #'+sale.id,'hint'));
+  card.append(heading,el('p',condition+' · Fixed price '+sgd(sale.price)+(sale.listPrice&&sale.listPrice!==sale.price?' (offer · listed '+sgd(sale.listPrice)+')':'')),el('p',(sale.costHidden?'Another seller\'s card':'Cost '+sgd(sale.cost)+(sale.inventoryOwner&&!limitedSeller?' · Seller '+sale.inventoryOwner+'\'s card':''))+' · Claim #'+sale.id,'hint'));
   if(sale.noOffers===true)card.append(el('p','Claim price only · no offers','claimPriceOnly'));
   if(sale.included)card.append(el('p','Includes: '+sale.included,'hint'));
   if(sale.notes)card.append(el('p','⚠️ '+sale.notes,'hint'));
@@ -572,19 +590,19 @@ function renderResult(){
  box.append(el('p','Test cards are left out. Mailing is not counted either way.','hint'));
 }
 const claimOfferLive=o=>o.status==='pending'||o.status==='countered';
-const claimOfferStatusLabel=o=>({pending:'Waiting for you',countered:'Countered SGD '+money(o.counter)+(o.counterNote?' (“'+o.counterNote+'”)':'')+' · waiting for buyer',accepted:'Accepted',rejected:'Declined',withdrawn:'Replaced by a newer offer',closed:'Closed'})[o.status]||o.status;
+const claimOfferStatusLabel=o=>({pending:'Waiting for you',countered:'Countered '+sgd(o.counter)+(o.counterNote?' (“'+o.counterNote+'”)':'')+' · waiting for buyer',accepted:'Accepted',rejected:'Declined',withdrawn:'Replaced by a newer offer',closed:'Closed'})[o.status]||o.status;
 function claimOfferRows(sale){
  const offers=claimOffers.filter(o=>o.saleId===sale.id);if(!offers.length)return[];
  const box=el('div',undefined,'claimOffers');box.append(el('h4','Offers'));
  for(const o of offers){
-  const row=el('div',undefined,'claimOffer');row.append(el('p',(o.buyerName||'Buyer '+o.buyerId)+' offered SGD '+money(o.amount)+' · '+claimOfferStatusLabel(o)));
+  const row=el('div',undefined,'claimOffer');row.append(el('p',(o.buyerName||'Buyer '+o.buyerId)+' offered '+sgd(o.amount)+' · '+claimOfferStatusLabel(o)));
   if(claimOfferLive(o)&&sale.status==='open'){
    const actions=el('div',undefined,'claimActions'),input=el('input');input.inputMode='decimal';input.placeholder='Counter SGD';input.setAttribute('aria-label','Counter offer for '+(o.buyerName||'buyer')+' in SGD');
    // The buyer is told why, in our words, with the price. Without it a
    // counter reads as haggling and they ask anyway.
    const why=el('input');why.maxLength=300;why.placeholder='Why (optional)';why.setAttribute('aria-label','Reason for countering '+(o.buyerName||'the buyer'));
    const button=(label,act,danger)=>{const b=el('button',label);b.type='button';if(danger)b.className='danger';b.onclick=()=>task(()=>changeClaimOffer(o,act,input,why));return b;};
-   actions.append(button('Accept SGD '+money(o.amount),'accept'),input,why,button('Counter','counter'),button('Decline','reject',true));row.append(actions);
+   actions.append(button('Accept '+sgd(o.amount),'accept'),input,why,button('Counter','counter'),button('Decline','reject',true));row.append(actions);
   }
   box.append(row);
  }
@@ -594,7 +612,7 @@ async function changeClaimOffer(o,act,input,why){
  let counter=0,counterNote='';
  if(act==='counter'){counter=cents(input.value.trim());if(!counter)throw Error('Enter a counter price in SGD, e.g. 278.00');counterNote=(why?.value||'').trim();}
  const who=o.buyerName||'the buyer';
- const title=act==='accept'?'Accept '+who+"'s offer of SGD "+money(o.amount)+'?':act==='counter'?'Counter '+who+' at SGD '+money(counter)+'?':'Decline '+who+"'s offer?";
+ const title=act==='accept'?'Accept '+who+"'s offer of "+sgd(o.amount)+'?':act==='counter'?'Counter '+who+' at '+sgd(counter)+'?':'Decline '+who+"'s offer?";
  const text=act==='accept'?'The card is reserved for them at this price, already approved. The bot tells them and updates the post.':act==='counter'?('The bot sends the counter to the buyer with Accept and Decline buttons.'+(counterNote?' They are told why: “'+counterNote+'”':' No reason is given.')):'The bot tells them. The card stays open.';
  if(!await confirmAction(title,text,[]))return;
  await claimWrite({action:'offer-change',offerId:o.id,revision:o.revision,commandKey:newID(),offerAction:act,counter,counterNote});await loadClaims();
@@ -603,7 +621,7 @@ async function changeClaimOffer(o,act,input,why){
 // Offers on normal listings. They are answered exactly as from the notice in
 // Telegram, and the bot tells the buyer the same way.
 const listingOfferOpen=o=>['received','reviewing','countered'].includes(o.status);
-const listingOfferStatusLabel=o=>({received:'Waiting for you',reviewing:'Waiting for you',countered:'Countered SGD '+money(o.counter)+(o.counterNote?' (“'+o.counterNote+'”)':'')+' · waiting for buyer',accepted:'Accepted · held at SGD '+money(o.agreed)+(o.decidedBy?' · by '+o.decidedBy:''),declined:'Declined'+(o.decidedBy?' by '+o.decidedBy:''),withdrawn:'Withdrawn by the buyer'})[o.status]||o.status;
+const listingOfferStatusLabel=o=>({received:'Waiting for you',reviewing:'Waiting for you',countered:'Countered '+sgd(o.counter)+(o.counterNote?' (“'+o.counterNote+'”)':'')+' · waiting for buyer',accepted:'Accepted · held at '+sgd(o.agreed)+(o.decidedBy?' · by '+o.decidedBy:''),declined:'Declined'+(o.decidedBy?' by '+o.decidedBy:''),withdrawn:'Withdrawn by the buyer'})[o.status]||o.status;
 // Loaded beside the inventory rather than through task(): it only fills its
 // own panel, so it must not lock the page or redraw the rows being edited.
 async function loadListingOffers(){const data=await api('listing-offers',{action:'list'});listingOffers=data.offers||[];listingOffersLoaded=true;renderListingOffers();}
@@ -613,22 +631,22 @@ function renderListingOffers(){
  if(!listingOffers.length){box.append(el('p','No offers in the last 30 days.','empty'));return;}
  for(const o of listingOffers){
   const row=el('div',undefined,'claimOffer');
-  const cards=o.items.map(i=>(o.test?'[test] ':'')+'#'+i.stockId+' '+i.name+' · asking SGD '+money(i.asking)).join(', ');
-  row.append(el('p',(o.buyerName||'Buyer '+o.buyerId)+' offered SGD '+money(o.offer)+' for '+cards+' · '+listingOfferStatusLabel(o)));
+  const cards=o.items.map(i=>named(o.test,'#'+i.stockId+' '+i.name)+' · asking '+sgd(i.asking)).join(', ');
+  row.append(el('p',(o.buyerName||'Buyer '+o.buyerId)+' offered '+sgd(o.offer)+' for '+cards+' · '+listingOfferStatusLabel(o)));
   if(listingOfferOpen(o)){
    const input=el('input');input.inputMode='decimal';input.placeholder='Counter SGD';input.setAttribute('aria-label','Counter price for offer #'+o.id);
    const why=el('input');why.maxLength=200;why.placeholder='Note for the buyer (optional)';why.setAttribute('aria-label','Counter note for offer #'+o.id);
    const button=(label,act,danger)=>{const b=el('button',label);b.type='button';if(danger)b.className='danger';b.onclick=()=>task(()=>changeListingOffer(o,act,input,why));return b;};
-   const actions=el('div',undefined,'claimOfferActions');actions.append(button('Accept SGD '+money(o.offer),'accept'),input,why,button('Counter','counter'),button('Decline','decline',true));row.append(actions);
+   const actions=el('div',undefined,'claimOfferActions');actions.append(button('Accept '+sgd(o.offer),'accept'),input,why,button('Counter','counter'),button('Decline','decline',true));row.append(actions);
   }
   box.append(row);
  }
 }
 async function changeListingOffer(o,act,input,why){
  let counter=0,note='';
- if(act==='counter'){counter=cents(input.value.trim());if(!counter)throw Error('Enter a counter price in SGD, e.g. 18.00');if(counter<=o.offer||counter>=o.asking)throw Error('A counter must be above SGD '+money(o.offer)+' and below SGD '+money(o.asking)+'.');note=(why.value||'').trim();}
+ if(act==='counter'){counter=cents(input.value.trim());if(!counter)throw Error('Enter a counter price in SGD, e.g. 18.00');if(counter<=o.offer||counter>=o.asking)throw Error('A counter must be above '+sgd(o.offer)+' and below '+sgd(o.asking)+'.');note=(why.value||'').trim();}
  const who=o.buyerName||'the buyer';
- const title=act==='accept'?'Accept '+who+"'s offer of SGD "+money(o.offer)+'?':act==='counter'?'Counter '+who+' at SGD '+money(counter)+'?':'Decline '+who+"'s offer?";
+ const title=act==='accept'?'Accept '+who+"'s offer of "+sgd(o.offer)+'?':act==='counter'?'Counter '+who+' at '+sgd(counter)+'?':'Decline '+who+"'s offer?";
  const text=act==='accept'?'The card is held for them at this price, as if they had tapped Buy. The bot tells them.':act==='counter'?('The bot sends them your price with Accept and Decline buttons. Accepting holds the card for them.'+(note?' They see your note: “'+note+'”':'')):'The bot tells them. The card stays listed.';
  if(!await confirmAction(title,text,[]))return;
  await api('listing-offers',{action:act,offerId:o.id,counter,note});
@@ -688,8 +706,8 @@ function renderDeliveries(){
  for(const d of shown){
   const card=el('article',undefined,'claimCard claimOrderCard'),heading=el('div',undefined,'claimCardHeading');
   heading.append(el('h3',named(d.test,'Delivery #'+d.id+' · '+claimBuyer(d.buyerName,d.buyerId))),el('span',deliveryStatusLabel(d),'claimStatus'));card.append(heading);
-  for(const l of d.lines)card.append(el('p',l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
-  card.append(el('p','Cards paid SGD '+money(d.cardsTotal)+' · '+(d.method==='mail'?(d.freeMail?'Mail · free mailing':'Mail · shipping SGD '+money(d.mailFee)+' · Ref SHIP'+d.id):d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
+  for(const l of d.lines)card.append(el('p',l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · '+sgd(l.price)));
+  card.append(el('p','Cards paid '+sgd(d.cardsTotal)+' · '+(d.method==='mail'?(d.freeMail?'Mail · free mailing':'Mail · shipping '+sgd(d.mailFee)+' · Ref SHIP'+d.id):d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
   if(d.address)card.append(el('p','Mail to: '+d.address,'claimAddress'));
   if(d.tracking)card.append(el('p','Tracking: '+d.tracking+(d.trackingPhoto?' · photo sent':''),'claimAddress'));
   if(d.paymentProof)card.append(claimProofView({...d,ref:'SHIP'+d.id}));
@@ -721,7 +739,7 @@ function renderClaimOrders(){
  const groups=new Map();for(const s of claims)if(s.status==='awaiting_payment'&&!s.orderId&&s.claimantId){const g=groups.get(s.claimantId)||[];g.push(s);groups.set(s.claimantId,g);}
  for(const [buyer,rows] of groups){
   const card=el('article',undefined,'claimCard claimReadyCard'),total=rows.reduce((t,s)=>t+s.price,0),open=claimOrders.find(o=>o.buyerId===buyer&&claimOrderOpen(o));
-  const who=claimBuyer(rows.find(s=>s.claimantName)?.claimantName,buyer);card.append(el('h3','Ready to send · '+who),el('p',rows.length+' approved '+(rows.length===1?'claim':'claims')+' · cards SGD '+money(total)),el('p',rows.map(s=>'#'+s.id+' '+s.name).join(' · '),'hint'));
+  const who=claimBuyer(rows.find(s=>s.claimantName)?.claimantName,buyer);card.append(el('h3','Ready to send · '+who),el('p',rows.length+' approved '+(rows.length===1?'claim':'claims')+' · cards '+sgd(total)),el('p',rows.map(s=>'#'+s.id+' '+s.name).join(' · '),'hint'));
   if(open)card.append(el('p','Buyer already has open order #'+open.id+'. Cancel it to send one combined order with these cards.','hint'));
   const actions=el('div',undefined,'claimActions');actions.append(claimOrderButton(null,'Send order to buyer',async()=>{
    if(!await confirmAction('Send order to '+who+'?','The bot DMs one combined total for these cards and asks mail or pickup.',rows.map(s=>({name:'Claim #'+s.id+' '+s.name,price:s.price,sale:s.price}))))return;
@@ -732,15 +750,15 @@ function renderClaimOrders(){
  for(const o of visible){
   const card=el('article',undefined,'claimCard claimOrderCard'),heading=el('div',undefined,'claimCardHeading');
   const batch=o.fulfilment==='later';heading.append(el('h3',named((o.lines||[]).some(l=>l.test),(batch?'Claim bill #':'Order #')+o.id+' · '+claimBuyer(o.buyerName,o.buyerId))),el('span',claimOrderStatusLabel(o),'claimStatus'));card.append(heading);
-  for(const l of o.lines)card.append(el('p','#'+l.saleId+' '+l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
-  const delivery=o.fulfilment==='later'?(o.deliveryId?'Delivery #'+o.deliveryId:'Cards only · how they get them is chosen when the sale ends'):o.fulfilment==='mail'?'Mailing SGD '+money(o.shipping):o.fulfilment==='pickup'?(claimCheckout?.pickupArea?'Self pickup at '+claimCheckout.pickupArea:'Self pickup')+' · free':'Delivery not chosen yet';
-  card.append(el('p','Cards SGD '+money(o.items)+' · '+delivery+' · Total SGD '+money(o.total)+' · Ref CLAIM'+o.id,'claimOrderTotal'));
+  for(const l of o.lines)card.append(el('p','#'+l.saleId+' '+l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · '+sgd(l.price)));
+  const delivery=o.fulfilment==='later'?(o.deliveryId?'Delivery #'+o.deliveryId:'Cards only · how they get them is chosen when the sale ends'):o.fulfilment==='mail'?'Mailing '+sgd(o.shipping):o.fulfilment==='pickup'?(claimCheckout?.pickupArea?'Self pickup at '+claimCheckout.pickupArea:'Self pickup')+' · free':'Delivery not chosen yet';
+  card.append(el('p','Cards '+sgd(o.items)+' · '+delivery+' · Total '+sgd(o.total)+' · Ref CLAIM'+o.id,'claimOrderTotal'));
   if(o.address){const a=el('p','Mail to: '+o.address,'claimAddress');card.append(a);}
   if(claimOrderOpen(o)&&o.payBy&&!o.paymentProof){const by=new Date(o.payBy),late=by<=Date.now();card.append(el('p',(late?'⏳ Time is up; releasing the cards now':'⏳ Pay by '+by.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+' or the cards go back on sale'),late?'rowerror':'hint'));}
   if(o.paymentProof)card.append(claimProofView(o));
   if(o.dmStatus==='failed')card.append(el('p','DM not delivered: '+(o.dmError||'unknown'),'rowerror'));
   const actions=el('div',undefined,'claimActions');
-  if(o.status==='awaiting_payment')actions.append(claimOrderButton(o,'Confirm PayNow SGD '+money(o.total),()=>changeClaimOrder(o,'paid','Confirm PayNow for order #'+o.id)));
+  if(o.status==='awaiting_payment')actions.append(claimOrderButton(o,'Confirm PayNow '+sgd(o.total),()=>changeClaimOrder(o,'paid','Confirm PayNow for order #'+o.id)));
   if(o.status==='paid'&&o.fulfilment!=='later')actions.append(claimOrderButton(o,o.fulfilment==='mail'?'Mark mailed':'Mark collected',()=>changeClaimOrder(o,'shipped',(o.fulfilment==='mail'?'Mark mailed':'Mark collected')+' order #'+o.id)));
   if(claimOrderOpen(o))actions.append(claimOrderButton(o,'Resend to buyer',async()=>{const r=await api('claims',{action:'order-resend',orderId:o.id});await loadClaims();status(r.dmStatus==='sent'?'Order #'+o.id+' resent.':'DM failed: '+r.dmError,r.dmStatus!=='sent');}),claimOrderButton(o,'Cancel order',()=>changeClaimOrder(o,'cancel','Cancel order #'+o.id),true));
   if(actions.childElementCount)card.append(actions);list.append(card);
@@ -996,8 +1014,8 @@ async function moveBuybackAction(commit){
  const result=await api('lot',{action:'move',move:input});
  if(commit){$('moveBuybackDialog').close();selected.clear();await load(true);await loadLots();status('Moved '+result.count+' listings. Open Buyback batches to see the updated totals.');}
  else{
- moveBuybackPreview=result;const root=$('moveBuybackPreview');root.replaceChildren(el('p',result.count+' listings will move · recorded cost SGD '+money(result.cost)+' · recorded sales SGD '+money(result.sales)));
- for(const c of result.changes)root.append(el('p',c.label+': '+c.beforeUnits+' → '+c.afterUnits+' cards · batch cost SGD '+money(c.beforeCost)+' → '+money(c.afterCost)));
+ moveBuybackPreview=result;const root=$('moveBuybackPreview');root.replaceChildren(el('p',result.count+' listings will move · recorded cost '+sgd(result.cost)+' · recorded sales '+sgd(result.sales)));
+ for(const c of result.changes)root.append(el('p',c.label+': '+c.beforeUnits+' → '+c.afterUnits+' cards · batch cost '+sgd(c.beforeCost)+' → '+sgd(c.afterCost)));
  root.append(el('p','This groups existing inventory only. It does not create listings or post to Telegram.','hint'));$('moveBuybackConfirm').hidden=false;$('moveBuybackReview').hidden=true;
  }
  }catch(e){resetMovePreview();$('moveBuybackError').textContent=e.message;}
@@ -1017,8 +1035,8 @@ function renderBuybacks(){
  const section=el('details',undefined,'buybackReport');
  section.append(el('summary',l.label+' · '+l.sold+'/'+l.units+' sold · '+l.held+' remaining'));
  const stats=el('div',undefined,'totals');
- for(const [label,value] of [['Batch cost',l.total],['Sales recorded',l.revenue],['Sales less entire batch cost',l.revenue-l.total],['Gross profit on sold cards',l.revenue-l.soldCost],['Remaining asking total',l.remainingAsk]]){const card=el('div',undefined,'stat');card.append(el('span',label),el('strong','SGD '+money(value)));stats.append(card);}
- section.append(stats,el('p',l.revenue>=l.total?'Purchase cost recovered from recorded sales.':'SGD '+money(l.total-l.revenue)+' of purchase cost still to recover.'));
+ for(const [label,value] of [['Batch cost',l.total],['Sales recorded',l.revenue],['Sales less entire batch cost',l.revenue-l.total],['Gross profit on sold cards',l.revenue-l.soldCost],['Remaining asking total',l.remainingAsk]]){const card=el('div',undefined,'stat');card.append(el('span',label),el('strong',sgd(value)));stats.append(card);}
+ section.append(stats,el('p',l.revenue>=l.total?'Purchase cost recovered from recorded sales.':sgd(l.total-l.revenue)+' of purchase cost still to recover.'));
  section.append(el('p',l.unpriced+' remaining cards have no asking price. '+l.removed+' removed; '+l.traded+' traded out. Trades are not cash sales.','hint'));
  section.append(el('p','Sold-card profit uses the allocated card costs. The whole-batch result deducts the current batch cost once, including removed or traded cards. Moving listings between batches carries their recorded cost between the batch totals.','hint'));
  for(const [label,destination] of [['View remaining cards','stock'],['View sold cards','sold']]){const button=el('button',label);button.onclick=()=>{tab=destination;inventoryPage=0;selected.clear();buybackSelection=l.id;$('filter').value='';$('unassigned').checked=false;$('all').checked=false;render();status('Showing '+l.label+'. Select the Available or Sold tab to show all batches.');};section.append(button);}
@@ -1149,7 +1167,7 @@ function claimMovePrice(price,pct,round){const raw=Math.round(price*pct/100);ret
 function openClaimMove(rows,fromStock=false){
  const key=newID(),touched=new Set(),list=$('claimMoveRows');list.replaceChildren();$('claimMoveError').textContent='';$('claimMoveTest').checked=fromStock&&rows.length>0&&rows.every(r=>r.test);$('claimMovePct').value='100';$('claimMoveRound').checked=false;
  const one=rows.length===1;$('claimMoveCount').textContent=fromStock?rows.length+(one?' listing leaves Available and waits':' listings leave Available and wait')+' in the Claim queue. Any shop-topic post comes down; nothing is posted until you release the claim sale.':rows.length+(one?' draft leaves Drafts and waits':' drafts leave Drafts and wait')+' in the Claim queue. Nothing is posted until you release the claim sale.';
- const inputs=rows.map(r=>{const row=el('div',undefined,'claimMoveRow'),input=el('input');input.inputMode='decimal';input.setAttribute('aria-label','Claim price for '+r.name+' in SGD');input.oninput=()=>touched.add(input);row.append(el('span',r.name,'claimMoveName'),el('span',r.costHidden||r.cost==null?'Cost unavailable':'Cost SGD '+money(r.cost),'hint'),input);list.append(row);return input;});
+ const inputs=rows.map(r=>{const row=el('div',undefined,'claimMoveRow'),input=el('input');input.inputMode='decimal';input.setAttribute('aria-label','Claim price for '+r.name+' in SGD');input.oninput=()=>touched.add(input);row.append(el('span',r.name,'claimMoveName'),el('span',r.costHidden||r.cost==null?'Cost unavailable':'Cost '+sgd(r.cost),'hint'),input);list.append(row);return input;});
  const fill=()=>{const pct=Number($('claimMovePct').value);rows.forEach((r,i)=>{if(!touched.has(inputs[i]))inputs[i].value=pct>0&&!r.costHidden&&r.cost>0?money(claimMovePrice(r.cost,pct,$('claimMoveRound').checked)):'';});};
  $('claimMovePct').oninput=fill;$('claimMoveRound').onchange=fill;fill();
  $('claimMoveCancel').onclick=()=>$('claimMove').close();
@@ -1275,9 +1293,9 @@ $('sellTogether').onclick=()=>task(async()=>{
  const sales=rows.map(r=>Number(sum?amount*BigInt(r.price)/sum:amount/BigInt(rows.length)));
  const remainder=total-sales.reduce((a,b)=>a+b,0);for(let i=0;i<remainder;i++)sales[i%rows.length]++;
  const preview=rows.map((r,i)=>({...r,sale:sales[i]}));
- if(!await confirmAction('Mark '+rows.length+' cards sold together?','Total SGD '+money(total)+'. Allocated amounts below add up exactly. All cards will be recorded together.',preview))return;
+ if(!await confirmAction('Mark '+rows.length+' cards sold together?','Total '+sgd(total)+'. Allocated amounts below add up exactly. All cards will be recorded together.',preview))return;
  await api('bundle-sale',{rows:rows.map(r=>({stockId:r.stockId,revision:r.revision})),total});
- rows.forEach(r=>dirty.delete(key(r)));await load(true);status(rows.length+' cards sold for SGD '+money(total)+'.');
+ rows.forEach(r=>dirty.delete(key(r)));await load(true);status(rows.length+' cards sold for '+sgd(total)+'.');
 });
 // Letting a held card go. One card, one tap, and it asks first: the buyer
 // holding it has been told it is theirs, and they are told again when it is
@@ -1844,7 +1862,7 @@ function renderCardshow(){
  for(const person of people){
   const box=el('div',undefined,'holdPerson'),head=el('header');
   const total=person.cards.reduce((n,c)=>n+(c.price||0),0);
-  head.append(el('h3',holdWho(person)),el('span',person.cards.length+' card'+(person.cards.length===1?'':'s')+' · '+money(total)+' · '+holdSince(person.since),'holdSince'));
+  head.append(el('h3',holdWho(person)),el('span',person.cards.length+' card'+(person.cards.length===1?'':'s')+' · '+sgd(total)+' · '+holdSince(person.since),'holdSince'));
   const cards=el('ul',undefined,'holdCards');
   for(const card of person.cards){
    const row=el('li');
