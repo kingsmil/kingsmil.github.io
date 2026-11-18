@@ -114,6 +114,13 @@
 
 .claimOffers{margin-top:12px;border-top:1px solid #e4e9df;padding-top:10px}.claimOffers h4{margin:0 0 6px;font-size:13px}.claimOffer p{margin:4px 0}.claimOffer input{width:120px;min-height:40px}
 
+/* Offers on listings have a tab of their own, with the same card look as a
+   claim: the answer buttons sit on one line and stack on a phone. */
+#offersPanel{padding:20px 0}#offersPanel h2{margin:0}#offersPanel .claimSales{margin-top:14px}
+.claimOfferActions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+#offersPanel .claimOfferActions input{flex:1 1 160px;width:auto;min-width:0}
+@media(max-width:750px){#offersPanel .claimOfferActions{flex-direction:column;align-items:stretch}#offersPanel .claimOfferActions button,#offersPanel .claimOfferActions input,#reloadListingOffers{flex:0 0 auto;width:100%;min-height:44px}}
+
 .buybackReport{margin:12px 0;padding:16px;border:1px solid var(--border,#ccc);border-radius:12px}.buybackReport summary{cursor:pointer;font-weight:600}.buybackReport .totals{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}.buybackReport .stat{flex:1 1 180px}.buybackReport button{margin:6px 8px 0 0}
 .checkoutQr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}.checkoutQr img{width:120px;height:120px;object-fit:contain;border:1px solid #dce2d6;border-radius:8px;background:#fff}
 #claimMove{max-width:640px}.claimMoveRule{display:flex;flex-wrap:wrap;gap:14px;align-items:end}.claimMoveRule label{display:flex;flex-direction:column;gap:6px}.claimMoveRule label.check{flex-direction:row;align-items:center}#claimMoveRows{max-height:45vh;overflow:auto;margin:10px 0}.claimMoveRow{display:grid;grid-template-columns:1fr auto 110px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #edf0e9}.claimMoveRow input{width:100%}.claimMoveName{font-weight:600;font-size:13px}@media(max-width:750px){.claimMoveRow{grid-template-columns:1fr 100px}.claimMoveRow .hint{grid-column:1}}
