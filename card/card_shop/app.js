@@ -475,7 +475,7 @@ async function loadHeld() {
  }
 }
 
-const offerState = {received: 'Received', reviewing: 'With shop', withdrawn: 'Withdrawn', accepted: 'Accepted', declined: 'Not accepted'};
+const offerState = {received: 'Received', reviewing: 'With shop', withdrawn: 'Withdrawn', accepted: 'Accepted', declined: 'Not accepted', countered: 'Counter offer'};
 async function loadOffers() {
  const seq = ++offersSeq;
  try {
@@ -499,7 +499,7 @@ async function loadOffers() {
    } else if (offer.status === 'declined') {
     row.appendChild(el('p', 'The shop did not accept this offer.', 'hint'));
    } else {
-    row.appendChild(el('p', 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
+    row.appendChild(el('p', offer.status === 'countered' ? 'The shop sent you a counter price in Telegram. Accept or decline it there. No card is reserved yet.' : 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
     // Two taps, no dialog: the first asks, the second withdraws.
     const take = el('button', 'Withdraw offer', 'secondary');
     take.type = 'button';
