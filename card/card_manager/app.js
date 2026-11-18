@@ -169,12 +169,12 @@ $('ledgerForm').onsubmit=e=>{e.preventDefault();task(async()=>{
  const payload=JSON.stringify(entry);if(!ledgerRetry||ledgerRetry.payload!==payload)ledgerRetry={payload,key:crypto.randomUUID()};
  ledgerData=await api('ledger',{action:'add',entry:{...entry,key:ledgerRetry.key}});ledgerRetry=null;$('ledgerAmount').value='';$('ledgerDescription').value='';renderLedger();status('Ledger entry recorded.');
  });};
-// The session lives in this tab's sessionStorage until the server's 12-hour
-// limit, so a reload keeps you signed in; it never reaches other tabs and
-// Sign out (or any 401) clears it.
+// The session lives in this browser's localStorage until the server's 3-day
+// limit, so a reload or a new tab keeps you signed in. Sign out (or any 401)
+// clears it. A session an older page kept in sessionStorage is picked up once.
 const sessionKey='cardManagerSession';
-function keepSession(value){try{if(value)sessionStorage.setItem(sessionKey,JSON.stringify({token:value,until:Date.now()+12*3600e3}));else sessionStorage.removeItem(sessionKey);}catch{}}
-function storedSession(){try{const s=JSON.parse(sessionStorage.getItem(sessionKey)||'null');return s&&s.token&&s.until>Date.now()?s.token:'';}catch{return '';}}
+function keepSession(value){try{sessionStorage.removeItem(sessionKey);if(value)localStorage.setItem(sessionKey,JSON.stringify({token:value,until:Date.now()+72*3600e3}));else localStorage.removeItem(sessionKey);}catch{}}
+function storedSession(){try{const s=JSON.parse(localStorage.getItem(sessionKey)||sessionStorage.getItem(sessionKey)||'null');return s&&s.token&&s.until>Date.now()?s.token:'';}catch{return '';}}
 async function resumeSession(){const saved=storedSession();if(!saved)return;token=saved;status('Loading inventory…');try{await load(false);}catch(e){token='';keepSession(null);status('Please sign in again.');return;}if(token!==saved)return;$('login').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;status('Ready.');}
 // Hands the password to the browser's password manager so it offers to save
 // it and fills it in next time.
