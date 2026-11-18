@@ -475,7 +475,7 @@ async function loadHeld() {
  }
 }
 
-const offerState = {received: 'Received', reviewing: 'With shop', withdrawn: 'Withdrawn'};
+const offerState = {received: 'Received', reviewing: 'With shop', withdrawn: 'Withdrawn', accepted: 'Accepted', declined: 'Not accepted'};
 async function loadOffers() {
  const seq = ++offersSeq;
  try {
@@ -494,6 +494,10 @@ async function loadOffers() {
    if (offer.notes) row.appendChild(el('p', 'Note: ' + offer.notes, 'meta'));
    if (offer.status === 'withdrawn') {
     row.appendChild(el('p', 'You withdrew this offer.', 'hint'));
+   } else if (offer.status === 'accepted') {
+    row.appendChild(el('p', 'The shop accepted. The card is held for you; they will message you in Telegram.', 'hint'));
+   } else if (offer.status === 'declined') {
+    row.appendChild(el('p', 'The shop did not accept this offer.', 'hint'));
    } else {
     row.appendChild(el('p', 'The shop will follow up in Telegram. No card is reserved yet.', 'hint'));
     // Two taps, no dialog: the first asks, the second withdraws.

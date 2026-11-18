@@ -615,6 +615,27 @@ function claimProofView(o){
 }
 const deliveryStatusLabel=d=>({choosing:'Waiting for a delivery choice',address:'Waiting for address',awaiting_payment:d.paymentProof?'Shipping screenshot · check and confirm':'Waiting for shipping payment',meetup:'Meetup · arrange a time',paid:d.freeMail&&!d.paymentProof?'Free mailing · to mail':'Shipping paid · to mail',shipped:'Mailed',collected:'Collected',cancelled:'Cancelled'})[d.status]||d.status;
 const deliveryOpen=d=>['choosing','address','awaiting_payment','meetup'].includes(d.status);
+// Mark mailed takes the tracking number, which is required, and a photo of
+// the parcel or the post office receipt, which is optional. Both go to the
+// buyer in Telegram. What was typed or picked is kept per delivery, because
+// the list is redrawn after every action.
+const mailedDrafts=new Map();
+function mailedForm(d){
+ const draft=mailedDrafts.get(d.id)||{tracking:'',photo:null};mailedDrafts.set(d.id,draft);
+ const form=el('div',undefined,'claimActions mailedForm'),number=document.createElement('input'),photo=document.createElement('input');
+ number.type='text';number.placeholder='Tracking number (required)';number.maxLength=80;number.autocomplete='off';number.value=draft.tracking;number.setAttribute('aria-label','Tracking number for delivery #'+d.id);number.oninput=()=>{draft.tracking=number.value;};
+ photo.type='file';photo.accept='image/*';photo.setAttribute('aria-label','Parcel or receipt photo for delivery #'+d.id);
+ const hint=el('span',draft.photo?'Photo: '+draft.photo.name:'Photo (optional)','hint');photo.onchange=()=>{draft.photo=photo.files[0]||null;hint.textContent=draft.photo?'Photo: '+draft.photo.name:'Photo (optional)';};
+ const button=claimOrderButton(null,'Mark mailed',async()=>{
+  const tracking=draft.tracking.trim();
+  if(!tracking)throw new Error('Add the tracking number before marking it mailed.');
+  if(!await confirmAction('Mark mailed · delivery #'+d.id+'?','The buyer gets a message with tracking number '+tracking+(draft.photo?' and the photo.':'.'),[]))return;
+  let trackingPhoto='';
+  if(draft.photo){const body=new FormData();body.append('photo',draft.photo,'parcel.jpg');trackingPhoto=(await api('upload',body)).photo;}
+  await claimWrite({action:'delivery-change',deliveryId:d.id,revision:d.revision,deliveryAction:'mailed',tracking,trackingPhoto});mailedDrafts.delete(d.id);await loadClaims();status('Marked mailed. The buyer has the tracking number.');
+ });
+ form.append(number,hint,photo,button);return form;
+}
 function renderDeliveries(){
  const list=$('claimDeliveries');if(!list)return;list.replaceChildren();
  const shown=claimDeliveries.filter(d=>deliveryOpen(d)||d.status==='paid'||Date.now()-Date.parse(d.updatedAt)<7*864e5);
@@ -625,12 +646,13 @@ function renderDeliveries(){
   for(const l of d.lines)card.append(el('p',l.name+' · '+(l.slab?'Slab · '+l.slab:l.condition)+' · SGD '+money(l.price)));
   card.append(el('p','Cards paid SGD '+money(d.cardsTotal)+' · '+(d.method==='mail'?(d.freeMail?'Mail · free mailing':'Mail · shipping SGD '+money(d.mailFee)+' · Ref SHIP'+d.id):d.method==='meetup'?'Meetup':'Not chosen yet'),'claimOrderTotal'));
   if(d.address)card.append(el('p','Mail to: '+d.address,'claimAddress'));
+  if(d.tracking)card.append(el('p','Tracking: '+d.tracking+(d.trackingPhoto?' · photo sent':''),'claimAddress'));
   if(d.paymentProof)card.append(claimProofView({...d,ref:'SHIP'+d.id}));
   if(d.remindedAt&&deliveryOpen(d)&&d.status!=='meetup')card.append(el('p','No answer for 24 hours: reminded once. Please follow up with the buyer.','rowerror'));
   const act=(label,action,danger)=>claimOrderButton(null,label,async()=>{if(!await confirmAction(label+' · delivery #'+d.id+'?','The buyer gets a message.',[]))return;await claimWrite({action:'delivery-change',deliveryId:d.id,revision:d.revision,deliveryAction:action});await loadClaims();status(label+' done.');},danger);
   const actions=el('div',undefined,'claimActions');
   if(d.status==='awaiting_payment')actions.append(act('Confirm shipping paid','shipping-paid'));
-  if(d.status==='paid')actions.append(act('Mark mailed','mailed'));
+  if(d.status==='paid')card.append(mailedForm(d));
   if(d.status==='meetup'||d.status==='choosing')actions.append(act('Mark collected','collected'));
   if(deliveryOpen(d))actions.append(act('Cancel delivery','cancel',true));
   if(actions.childElementCount)card.append(actions);list.append(card);
