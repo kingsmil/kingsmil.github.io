@@ -15,7 +15,25 @@ let centralRows=[],centralSellers=[],centralTotals=null,centralOwner='all',centr
 // Keep editing and image decoding bounded as the pending list grows. Selection lives in the model, not the current page.
 let inventoryPage=0;const inventoryPageSize=20;
 let lotEntries=[],lotSearchTimer,lotSearchAbort,lotSearchSeq=0;
+// The three people the shop's money is split between. The server sends them
+// with the workspace, so the sale dialog can ask who took the money without
+// first opening the ledger tab; the fallback is only for a cached build that
+// signed in before the field existed.
+let partners=['Moe','Kaeive','Moetwo'];
+function fillReceivers(select){
+ select.replaceChildren();const ask=el('option','Choose who was paid');ask.value='';select.append(ask);
+ partners.forEach((name,i)=>{const o=el('option',name);o.value=String(i);select.append(o);});select.value='';
+}
+function fillPartners(select,chosen){
+ const value=chosen??(select.value||'0');select.replaceChildren();
+ partners.forEach((name,i)=>{const o=el('option',name);o.value=String(i);select.append(o);});
+ select.value=partners[Number(value)]?String(value):'0';
+}
 const batchFor=r=>batches.find(b=>b.items.some(i=>i.stockId===r.stockId));
+// A shared card sold for real money is the partnership's takings, so the
+// ledger has to be told who was handed them. A seller's own card and a
+// rehearsal are nobody else's business and are never asked about.
+const splitsTakings=r=>!!r.shared&&!r.test&&!r.consignment;
 const photos=new Map(),photoLoads=new Map(),photoSizes=new Map();
 let photoBytes=0,activePhotos=0;const photoWaiters=[];
 function cachePhoto(id,blob){
@@ -77,14 +95,14 @@ async function api(path,body={},blob=false,signal){
  }catch(e){if(timeout.aborted)throw Error('Request timed out. Reload inventory before retrying changes.');throw e;}
 }
 
-function signOut(clear=true){$('photoDraftDialog').close();clearPhotoDraft();clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
+function signOut(clear=true){$('photoDraftDialog').close();clearPhotoDraft();clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();fillPartners($('lotPaidBy'),0);lotPaidByVisible();$('saleReceivedLabel').hidden=$('saleReceivedHint').hidden=true;$('bundleSale').close();$('bundleReceivedLabel').hidden=$('bundleReceivedHint').hidden=true;lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
 async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
  const data=initialData||await api('data');limitedSeller=!!data.limitedSeller;$('automationSettings').hidden=false;document.querySelector('[data-tab=expenses]').hidden=limitedSeller;document.querySelector('[data-tab=ledger]').hidden=limitedSeller;document.querySelector('[data-tab=giveaway]').hidden=limitedSeller;document.querySelector('[data-tab=carousell]').hidden=limitedSeller;document.querySelector('[data-tab=central]').hidden=limitedSeller;document.querySelector('[data-tab=claims]').hidden=false;$('claimRouteSettings').hidden=false;$('saveEntryRate').hidden=limitedSeller;$('entryRate').readOnly=limitedSeller;if(limitedSeller&&['carousell','central','claims','expenses','ledger','giveaway'].includes(tab))tab='drafts';
  // A seller must not keep another seller's rows in memory across a sign-out
  // and a sign-in as someone else in the same browser tab.
- if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;inboxUnread=data.inboxUnread||0;holdWaiting=data.cardshowWaiting||0;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
+ if(limitedSeller){clearLedger();clearGiveaway();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';}drafts=data.drafts||[];stock=(data.stock||[]).map(r=>({...r,sale:r.sold?r.sale:r.price}));bot=data.bot||bot;if(Array.isArray(data.partners)&&data.partners.length===3){partners=data.partners;fillPartners($('lotPaidBy'));}inboxUnread=data.inboxUnread||0;holdWaiting=data.cardshowWaiting||0;entryRate=data.jpyPerSgd||0;$('entryRate').value=entryRate||'';batches=data.carousell?.batches||[];collections=data.carousell?.collections||[];if(!templateDirty){template=data.carousell?.template||{};$('templateIntro').value=template.intro||'';$('templateItem').value=template.item||'';$('templateOutro').value=template.outro||'';}selected.clear();dirty.clear();
  expenses=data.expenses||[];trades=data.trades||[];renderAccounting();
  const t=data.totals,house=t.House||{},shared=t.Shared||{};$('totals').replaceChildren();
  // The stock figures span every seller. Expenses are the house ledger and
@@ -131,7 +149,7 @@ function clearLedger(){ledgerData=null;ledgerRetry=null;ledgerAsked=false;ledger
 function renderLedger(){
  if(!ledgerData)return;
  const {members,balances,entries}=ledgerData;$('ledgerBalances').replaceChildren();
- balances.forEach((b,i)=>{const card=el('div',undefined,'stat');card.append(el('strong',members[i]),el('p','Paid for shop: '+sgd(b.paid)),el('p','One-third share: '+sgd(b.share)),el('p','Repaid: '+sgd(b.sent)+' · Received: '+sgd(b.received)),el('strong','Net contributed: '+sgd(b.net)),el('p',b.balance>0?'Owed back: '+sgd(b.balance):b.balance<0?'Still owes: '+sgd(-b.balance):'Settled'));$('ledgerBalances').append(card);});
+ balances.forEach((b,i)=>{const card=el('div',undefined,'stat');card.append(el('strong',members[i]),el('p','Paid for shop: '+sgd(b.paid)),el('p','One-third share: '+sgd(b.share)),el('p','Took in for shop: '+sgd(b.collected||0)+' · own third of takings: '+sgd(b.owed||0)),el('p','Repaid: '+sgd(b.sent)+' · Received: '+sgd(b.received)),el('strong','Net contributed: '+sgd(b.net)),el('p',b.balance>0?'Owed back: '+sgd(b.balance):b.balance<0?'Still owes: '+sgd(-b.balance):'Settled'));$('ledgerBalances').append(card);});
  $('ledgerSettlement').replaceChildren(el('h3','To settle current balances'));
  const owing=balances.map(b=>Math.max(0,-b.balance)),owed=balances.map(b=>Math.max(0,b.balance));let transfers=0;
  for(let from=0;from<3;from++)for(let to=0;to<3;to++){const amount=Math.min(owing[from],owed[to]);if(amount){$('ledgerSettlement').append(el('p',members[from]+' → '+members[to]+': '+sgd(amount)));owing[from]-=amount;owed[to]-=amount;transfers++;}}
@@ -139,7 +157,7 @@ function renderLedger(){
  const query=$('ledgerFilter').value.toLowerCase(),matching=entries.filter(e=>(e.description+' '+e.date+' '+members[e.payer]+' '+(e.kind==='repayment'?members[e.recipient]:'')).toLowerCase().includes(query));
  $('ledgerHistory').replaceChildren();
  for(const e of matching.slice(0,ledgerLimit)){
-  const row=el('div',undefined,'ledgerEntry');row.append(el('strong','#'+e.id+' · '+e.date+' · '+members[e.payer]+(e.kind==='repayment'?' → '+members[e.recipient]:' paid for shop')+' · '+sgd(e.amount)),el('p',e.description));
+  const row=el('div',undefined,'ledgerEntry');row.append(el('strong','#'+e.id+' · '+e.date+' · '+members[e.payer]+(e.kind==='repayment'?' → '+members[e.recipient]:e.kind==='receipt'?' took in for shop':' paid for shop')+' · '+sgd(e.amount)),el('p',e.description));
   if(e.kind==='payment'&&e.splitMask&&e.splitMask!==7)row.append(el('small','Split with '+members.filter((_,i)=>e.splitMask&(1<<i)).join(', ')));
   if(e.voided)row.append(el('span','Voided — excluded from balances'));else {const button=el('button','Void entry');button.type='button';button.onclick=()=>task(async()=>{if(!await confirmAction('Void ledger entry?','This removes '+sgd(e.amount)+' from the balances and keeps the original in history.',[]))return;ledgerData=await api('ledger',{action:'void',id:e.id});renderLedger();});row.append(button);}
   $('ledgerHistory').append(row);
@@ -190,7 +208,10 @@ $('giveawayClose').onclick=()=>task(async()=>{const g=giveawayData?.giveaway;if(
 $('giveawayDraw').onclick=()=>task(async()=>{const g=giveawayData?.giveaway;if(!g)return;const winners=Number($('giveawayWinners').value);if(!Number.isInteger(winners)||winners<1||winners>20)throw Error('Draw between 1 and 20 winners.');if(!await confirmAction('Draw '+winners+' '+(winners===1?'winner':'winners')+'?',(g.status==='open'||g.status==='ended'?'This closes entries first. ':'')+'Winners are picked at random from '+g.entries+' entries and see it in the shop. This cannot be undone.',[]))return;await loadGiveaway({action:'draw',winners});});
 $('giveawayAdd').onclick=()=>task(async()=>{const refs=$('giveawayRefs').value.trim();if(!refs)throw Error('Enter an @handle or Telegram ID.');await loadGiveaway({action:'add',refs});$('giveawayRefs').value='';});
 function openLedgerTab(){if(ledgerData||ledgerAsked||busy||limitedSeller)return;ledgerAsked=true;task(loadLedger);}
-$('ledgerKind').onchange=()=>{$('ledgerRecipientLabel').hidden=$('ledgerKind').value!=='repayment';};
+$('ledgerKind').onchange=()=>{const kind=$('ledgerKind').value;$('ledgerRecipientLabel').hidden=kind!=='repayment';
+ // Money coming in is collected, not paid. The same field means the
+ // opposite thing in each direction, so it has to say which.
+ $('ledgerPayerLabel').firstChild.textContent=kind==='receipt'?'Collected by':'Paid by';};
 $('ledgerFilter').oninput=()=>{ledgerLimit=30;renderLedger();};
 $('ledgerMore').onclick=()=>{ledgerLimit+=30;renderLedger();};
 $('ledgerForm').onsubmit=e=>{e.preventDefault();task(async()=>{
@@ -870,7 +891,17 @@ function render(){
   ['M','NM','LP','MP','HP','Damaged','Slab'].forEach(v=>{const o=el('option',v);o.value=v;sel.append(o);});sel.value=r.condition;sel.disabled=r.sold||r.consignment;if(sel.disabled)sel.dataset.fixed='true';
   sel.onchange=()=>{change(r,'condition',sel.value);render();};cond.append(sel);
   if(r.condition==='Slab'){const grade=el('input');grade.className='grade';grade.placeholder='PSA 10';grade.value=r.slab||'';grade.disabled=r.sold||r.consignment;if(grade.disabled)grade.dataset.fixed='true';grade.onchange=()=>change(r,'slab',grade.value);cond.append(grade);}tr.append(cond);
-  ['cost','price'].forEach(field=>{const cell=el('td',undefined,field+'Cell'),input=moneyInput(r,field);cell.dataset.label=field==='cost'?'Cost SGD · private':'Asking SGD';input.disabled=r.sold||r.consignment||(field==='cost'&&!!r.tradeIn);if(field==='cost'&&r.sold&&r.stockId&&!r.consignment&&!r.tradeIn)soldCostInput(r,input);if(input.disabled)input.dataset.fixed='true';cell.append(input);tr.append(cell);});
+  ['cost','price'].forEach(field=>{const cell=el('td',undefined,field+'Cell'),input=moneyInput(r,field);cell.dataset.label=field==='cost'?'Cost SGD · private':'Asking SGD';
+   // A buyback card has no cost of its own to type. One price was paid for
+   // the whole batch and divided across its cards, so correcting it here
+   // would pull a card's share away from the total it came out of and the
+   // batch report would stop reconciling. The batch total is the one place
+   // it can be changed, and the server refuses it on the row as well.
+   const batched=field==='cost'&&!!r.costBatchId;
+   input.disabled=r.sold||r.consignment||(field==='cost'&&!!r.tradeIn)||batched;
+   if(batched)input.title='From buyback batch #'+r.costBatchId+'. Correct the batch total, not the card.';
+   else if(field==='cost'&&r.sold&&r.stockId&&!r.consignment&&!r.tradeIn)soldCostInput(r,input);
+   if(input.disabled)input.dataset.fixed='true';cell.append(input);tr.append(cell);});
   if(showPhotos)tr.append(photoCell(r,0),photoCell(r,1));
   const actions=el('td');
   if(r.stockId){const link=el('a','Listing ↗');link.href='https://t.me/'+bot+'?start=listing_'+r.stockId;link.target='_blank';link.rel='noopener noreferrer';actions.append(link);const market=el('button','Marketplaces','marketplaceDetails');market.type='button';market.setAttribute('aria-label','Marketplaces for '+r.name);market.onclick=()=>task(()=>openMarketplaceListing(r));actions.append(market);}
@@ -1026,7 +1057,16 @@ function lotPreview(){
  const base=Math.floor(total/n),extra=total%n;
  $('lotSummary').textContent=n+' card'+(n===1?'':'s')+' at '+sgd(base)+' each'+(extra?', '+sgd(base+1)+' for the first '+extra:'')+' \u00b7 '+sgd(total)+' total';
 }
-$('lotTotal').oninput=lotPreview;
+$('lotTotal').oninput=()=>{lotPreview();lotPaidByVisible();};
+// Only a shared batch is split three ways. A batch on one seller's own shelf
+// was bought with their own money, and the server refuses a payer for it, so
+// the question goes away rather than being asked and ignored.
+function lotPaidByVisible(){
+ const show=$('lotShared').checked&&lotCents()>0;
+ $('lotPaidByLabel').hidden=!show;$('lotPaidByHint').hidden=!show;
+}
+$('lotShared').onchange=lotPaidByVisible;
+fillPartners($('lotPaidBy'));lotPaidByVisible();
 $('lotPanel').ontoggle=()=>{if($('lotPanel').open&&token)task(loadLots);};
 let moveBuybackRows=[],moveBuybackPreview=null,moveBuybackBusy=false;
 function resetMovePreview(){moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackConfirm').hidden=true;$('moveBuybackReview').hidden=false;$('moveBuybackError').textContent='';$('moveBuybackNameLabel').hidden=$('moveBuybackTarget').value!=='0';}
@@ -1075,6 +1115,10 @@ function renderBuybacks(){
  for(const [label,value] of [['Batch cost',l.total],['Sales recorded',l.revenue],['Sales less entire batch cost',l.revenue-l.total],['Gross profit on sold cards',l.revenue-l.soldCost],['Remaining asking total',l.remainingAsk]]){const card=el('div',undefined,'stat');card.append(el('span',label),el('strong',sgd(value)));stats.append(card);}
  section.append(stats,el('p',l.revenue>=l.total?'Purchase cost recovered from recorded sales.':sgd(l.total-l.revenue)+' of purchase cost still to recover.'));
  section.append(el('p',l.unpriced+' remaining cards have no asking price. '+l.removed+' removed; '+l.traded+' traded out. Trades are not cash sales.','hint'));
+ // Who put up the money, from the batch itself. A batch taken in before
+ // the question existed has no answer, and saying so is better than
+ // naming whoever happens to come first in the list.
+ section.append(el('p',l.paidBy===undefined||l.paidBy===null?(l.shared?'Nobody is recorded as paying for this batch, so the partner ledger has no entry for it.':'One seller’s own batch · not split three ways.'):'Paid for by '+(partners[l.paidBy]||'a partner')+' · split three ways in the partner ledger.','hint'));
  section.append(el('p','Sold-card profit uses the allocated card costs. The whole-batch result deducts the current batch cost once, including removed or traded cards. Moving listings between batches carries their recorded cost between the batch totals.','hint'));
  for(const [label,destination] of [['View remaining cards','stock'],['View sold cards','sold']]){const button=el('button',label);button.onclick=()=>{tab=destination;inventoryPage=0;selected.clear();buybackSelection=l.id;$('filter').value='';$('unassigned').checked=false;$('all').checked=false;render();status('Showing '+l.label+'. Select the Available or Sold tab to show all batches.');};section.append(button);}
  root.append(section);
@@ -1082,7 +1126,7 @@ function renderBuybacks(){
 }
 async function loadLots(){
  const d=await api('lot',{action:'settings'});
- buybackLots=d.lots||[];renderBuybacks();if(!$('lotLabel').value)$('lotLabel').value=d.nextLabel||'';
+ buybackLots=d.lots||[];if(Array.isArray(d.partners)&&d.partners.length===3){partners=d.partners;fillPartners($('lotPaidBy'));}renderBuybacks();lotPaidByVisible();if(!$('lotLabel').value)$('lotLabel').value=d.nextLabel||'';
  $('lots').replaceChildren();
  for(const l of (d.lots||[]).slice(0,8))$('lots').append(el('p',l.label+' \u00b7 '+l.units+' card'+(l.units===1?'':'s')+' for '+sgd(l.total)+' \u00b7 '+l.held+' still held'+(l.shared?' \u00b7 shared':''),'hint'));
 }
@@ -1092,8 +1136,14 @@ $('createLot').onclick=()=>task(async()=>{
  if(lotEntries.some(e=>e.condition==='Slab'&&!e.slab.trim()))throw Error('Enter the grade for every slab.');
  if(total<0)throw Error('Enter the total paid, in dollars and cents.');
  if(!$('lotLabel').value.trim())throw Error('Name the lot, so you can find it later.');
- if(!await confirmAction('Take in '+n+' card'+(n===1?'':'s')+'?',$('lotSummary').textContent+'\n\n'+(shared?'Shared: the cost and the takings sit in the shop\u2019s own column, and all three of you can list and sell from it.':'Yours: the cost and the takings sit in your own column.')+'\nThe cards arrive with no asking price, so nothing is posted until you price them.',[]))return;
- const r=await api('lot',{action:'create',label:$('lotLabel').value,total,entries:lotEntries,shared});
+ // Whose money bought it is part of the purchase, not a note to add
+ // afterwards: nobody reconstructs this a month on, and the other two
+ // cannot be asked for a share of a cost the books cannot attribute.
+ const splits=shared&&total>0,paidBy=splits?Number($('lotPaidBy').value):null;
+ if(splits&&!partners[paidBy])throw Error('Say which of the three paid for this batch.');
+ const ledgerLine=splits?'\n'+partners[paidBy]+' paid '+sgd(total)+' for all three. The partner ledger records it split three ways, so the other two each owe about '+sgd(Math.floor(total/3))+' of it.':'';
+ if(!await confirmAction('Take in '+n+' card'+(n===1?'':'s')+'?',$('lotSummary').textContent+'\n\n'+(shared?'Shared: the cost and the takings sit in the shop\u2019s own column, and all three of you can list and sell from it.':'Yours: the cost and the takings sit in your own column.')+ledgerLine+'\nThe cards arrive with no asking price, so nothing is posted until you price them.',[]))return;
+ const r=await api('lot',{action:'create',label:$('lotLabel').value,total,entries:lotEntries,shared,...(splits?{paidBy}:{})});
  lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';lotPreview();
  status('Took in '+r.lot.units+' card'+(r.lot.units===1?'':'s')+' as '+r.lot.label+'.');
  await loadLots();await load(true);
@@ -1402,6 +1452,11 @@ function picked(){const rows=(tab==='drafts'?drafts:stock).filter(r=>selected.ha
 // and the Telegram topic it posts to follow this choice. An unset one is
 // treated as Pokémon, as before.
 function gameSelect(r){const sel=el('select');sel.setAttribute('aria-label','Game for '+r.name);for(const [v,t] of [['pokemon','Pokémon'],['riftbound','Riftbound']]){const o=el('option',t);o.value=v;sel.append(o);}sel.value=r.game||'pokemon';sel.disabled=!!r.sold||!!r.consignment;if(sel.disabled)sel.dataset.fixed='true';sel.onchange=()=>change(r,'game',sel.value);return sel;}
+function soldPayload(r,receivedBy){
+ const out=payload(r);
+ if(splitsTakings(r)&&out.sale>0&&receivedBy!=='')out.receivedBy=Number(receivedBy);
+ return out;
+}
 function payload(r){const out={id:r.id||'',revision:r.revision,cardId:r.cardId,name:r.name,condition:r.condition,slab:r.slab||'',cost:r.cost,price:r.price,photos:r.photos||[],notes:r.notes||'',game:r.cardId?'':(r.game||'')};if(r.stockId){out.included=r.included||'';out.stockId=r.stockId;out.sold=r.sold;out.sale=r.sale||0;out.consignment=r.consignment;}return out;}
 async function saveRows(rows,which=tab,redraw=true){
  validateRows(rows);
@@ -1605,19 +1660,31 @@ $('sellTogether').onclick=()=>task(async()=>{
  if(rows.length<2||rows.length>100)throw Error('Select 2–100 available cards.');
  if(rows.some(r=>r.sold||r.consignment))throw Error('Select available, non-consigned cards.');
  if(rows.some(r=>r.stockDirty))throw Error('Save your listing edits first.');
- const total=await new Promise(resolve=>{
-  $('bundleCount').textContent=rows.length+' cards';$('bundleTotal').value='';$('bundleError').textContent='';$('bundleSale').showModal();$('bundleTotal').focus();
+ // One total handed over is still money that landed in one person's hands,
+ // so a bundle holding shared cards asks the same question Mark sold asks.
+ // Selling the shop's cards two at a time was otherwise the way round it.
+ const splitRows=rows.filter(splitsTakings);
+ const entered=await new Promise(resolve=>{
+  $('bundleCount').textContent=rows.length+' cards';$('bundleTotal').value='';$('bundleError').textContent='';
+  fillReceivers($('bundleReceivedBy'));$('bundleReceivedLabel').hidden=$('bundleReceivedHint').hidden=!splitRows.length;
+  $('bundleSale').showModal();$('bundleTotal').focus();
   const finish=v=>{$('bundleSale').close();resolve(v);};
   $('bundleCancel').onclick=()=>finish(null);$('bundleSale').oncancel=e=>{e.preventDefault();finish(null);};
-  $('bundleReview').onclick=()=>{const v=cents($('bundleTotal').value);if(v===null||v<=0){$('bundleError').textContent='Enter a positive SGD total.';return;}finish(v);};
+  $('bundleReview').onclick=()=>{const v=cents($('bundleTotal').value);if(v===null||v<=0){$('bundleError').textContent='Enter a positive SGD total.';return;}
+   const receivedBy=$('bundleReceivedBy').value;
+   if(splitRows.length&&receivedBy===''){$('bundleError').textContent='Say who was paid for the shared cards. The ledger splits their takings three ways.';return;}
+   finish({total:v,receivedBy});};
  });
- if(total===null)return;
+ if(!entered)return;
+ const total=entered.total,receivedBy=entered.receivedBy;
  const sum=rows.reduce((s,r)=>s+BigInt(r.price),0n),amount=BigInt(total);
  const sales=rows.map(r=>Number(sum?amount*BigInt(r.price)/sum:amount/BigInt(rows.length)));
  const remainder=total-sales.reduce((a,b)=>a+b,0);for(let i=0;i<remainder;i++)sales[i%rows.length]++;
  const preview=rows.map((r,i)=>({...r,sale:sales[i]}));
- if(!await confirmAction('Mark '+rows.length+' cards sold together?','Total '+sgd(total)+'. Allocated amounts below add up exactly. All cards will be recorded together.',preview))return;
- await api('bundle-sale',{rows:rows.map(r=>({stockId:r.stockId,revision:r.revision})),total});
+ const taken=rows.reduce((s,r,i)=>s+(splitsTakings(r)&&sales[i]>0?sales[i]:0),0);
+ const split=taken&&receivedBy!==''?'\n\n'+partners[Number(receivedBy)]+' took in '+sgd(taken)+' of shared takings. The partner ledger splits it three ways, so the other two are each owed about '+sgd(Math.floor(taken/3))+'.':'';
+ if(!await confirmAction('Mark '+rows.length+' cards sold together?','Total '+sgd(total)+'. Allocated amounts below add up exactly. All cards will be recorded together.'+split,preview))return;
+ await api('bundle-sale',{rows:rows.map(r=>({stockId:r.stockId,revision:r.revision})),total,...(splitRows.length&&receivedBy!==''?{receivedBy:Number(receivedBy)}:{})});
  rows.forEach(r=>dirty.delete(key(r)));await load(true);status(rows.length+' cards sold for '+sgd(total)+'.');
 });
 // Letting a held card go. One card, one tap, and it asks first: the buyer
@@ -1647,26 +1714,47 @@ $('sell').onclick=()=>task(()=>editSales(picked()));
 async function editSales(rows){
  validateRows(rows);const correcting=rows.every(r=>r.sold);
  $('saleEntry').querySelector('h2').textContent=correcting?'Edit sold price':'Actual sale price';$('saleReview').textContent=correcting?'Review changes':'Review sale';
- const prices=await new Promise(resolve=>{
+ const splitRows=rows.filter(splitsTakings);
+ const entered=await new Promise(resolve=>{
   $('saleInputs').replaceChildren();$('saleError').textContent='';const inputs=[];
-  for(const r of rows){const label=el('label',named(r.test,r.name)+' · asking '+sgd(r.price)),input=el('input');input.inputMode='decimal';input.placeholder='Actual sold price';input.setAttribute('aria-label','Sale price for '+r.name);input.value=r.saleDirty||r.sold?money(r.sale):'';label.append(input);$('saleInputs').append(label);inputs.push(input);}
+  for(const r of rows){const label=el('label',named(r.test,r.name)+' · asking '+sgd(r.price)),input=el('input');input.inputMode='decimal';input.placeholder='Actual sold price';input.setAttribute('aria-label','Sale price for '+r.name);input.value=r.saleDirty||r.sold?money(r.sale):'';label.append(input);
+   if(splitsTakings(r))label.append(el('small','Shared \u00b7 takings split three ways'));
+   $('saleInputs').append(label);inputs.push(input);}
+  fillReceivers($('saleReceivedBy'));
+  $('saleReceivedLabel').hidden=$('saleReceivedHint').hidden=!splitRows.length;
   const done=v=>{$('saleEntry').close();resolve(v);};$('saleCancel').onclick=()=>done(null);$('saleEntry').oncancel=e=>{e.preventDefault();done(null);};
-  $('saleReview').onclick=()=>{const values=inputs.map(input=>input.value.trim()===''?null:cents(input.value));if(values.some(v=>v===null)){$('saleError').textContent='Enter a valid SGD price for every card. Use 0 only for a write-off.';return;}done(values);};
+  $('saleReview').onclick=()=>{const values=inputs.map(input=>input.value.trim()===''?null:cents(input.value));
+   if(values.some(v=>v===null)){$('saleError').textContent='Enter a valid SGD price for every card. Use 0 only for a write-off.';return;}
+   const receivedBy=$('saleReceivedBy').value,taking=rows.some((r,i)=>splitsTakings(r)&&values[i]>0);
+   if(taking&&receivedBy===''){$('saleError').textContent='Say who was paid for the shared cards. The ledger splits their takings three ways.';return;}
+   done({values,receivedBy});};
   $('saleEntry').showModal();inputs[0]?.focus();
  });
- if(!prices)return;
+ if(!entered)return;
+ const prices=entered.values,receivedBy=entered.receivedBy;
  const preview=rows.map((r,i)=>({...r,sale:prices[i]}));
- if(!await confirmAction(correcting?'Update sold prices?':'Mark '+count(rows.length,'card')+' sold?',correcting?'Updates sales totals and profit. Cards stay sold.':'Check your actual sale prices below. Topic posts will be retired.',preview))return;
+ // What the ledger is about to be told, said before it is told: the
+ // money is one person's to hand over, and the other two are owed a
+ // third of it each from the moment the sale is recorded.
+ const taken=rows.reduce((sum,r,i)=>sum+(splitsTakings(r)&&prices[i]>0?prices[i]:0),0);
+ const split=taken&&receivedBy!==''?'\n\n'+partners[Number(receivedBy)]+' took in '+sgd(taken)+' of shared takings. The partner ledger splits it three ways, so the other two are each owed about '+sgd(Math.floor(taken/3))+'.':'';
+ if(!await confirmAction(correcting?'Update sold prices?':'Mark '+count(rows.length,'card')+' sold?',(correcting?'Updates sales totals and profit. Cards stay sold.':'Check your actual sale prices below. Topic posts will be retired.')+split,preview))return;
  rows.forEach((r,i)=>{r.sale=prices[i];r.saleDirty=true;dirty.add(key(r));});
  const edits=rows.filter(r=>r.stockDirty&&!r.sold&&!r.consignment);
  if(edits.length&&!await saveRows(edits)){status('Fix the row errors before recording sales.',true);return;}
- const result=await api('stock',{rows:rows.map(payload),action:'sold'});const failed=[];
+ const result=await api('stock',{rows:rows.map(r=>soldPayload(r,receivedBy)),action:'sold'});const failed=[];
  result.forEach((out,i)=>{const row=rows[i];if(out.error){row.error=out.error;dirty.add(key(row));failed.push(key(row));}else{row.saleDirty=false;row.stockDirty=false;dirty.delete(key(row));}});
  await load(true);failed.forEach(k=>selected.add(k));render();
  status(failed.length?(rows.length-failed.length)+(correcting?' updated; ':' sold; ')+failed.length+' need attention. Refresh and review the failed rows.':correcting?'Sold prices updated.':'Sales recorded.',failed.length>0);
 }
 $('remove').onclick=()=>task(async()=>{
- const rows=picked();if(rows.some(r=>r.tradeIn))throw Error('Trade-linked cards keep their cost history. Record a zero-value sale for a write-off.');if(!await confirmAction('Delete '+rows.length+(rows.length===1?' row?':' rows?'),tab==='drafts'?'Drafts will be discarded.':'This removes selected listings and their amounts from your accounting totals. This cannot be undone here.',rows))return;
+ const rows=picked();if(rows.some(r=>r.tradeIn))throw Error('Trade-linked cards keep their cost history. Record a zero-value sale for a write-off.');
+ // Deleting a sold shared card takes its takings out of the books, so the
+ // ledger stops holding them too. Saying so first: the other two were owed a
+ // third of that money until this click.
+ const undone=rows.filter(r=>r.sold&&splitsTakings(r)).reduce((s,r)=>s+(r.sale||0),0);
+ const ledgerLine=undone?' '+sgd(undone)+' of shared takings goes with them: the partner ledger entry is voided, and the buyback cost of a batch card stays where it is.':'';
+ if(!await confirmAction('Delete '+rows.length+(rows.length===1?' row?':' rows?'),tab==='drafts'?'Drafts will be discarded.':'This removes selected listings and their amounts from your accounting totals.'+ledgerLine+' This cannot be undone here.',rows))return;
  const saved=rows.filter(r=>tab!=='drafts'||r.revision>0);
  const result=saved.length?await api(tab==='drafts'?'discard':'stock',{rows:saved.map(payload),action:'delete'}):[];
  const failures=new Set(result.filter(r=>r.error).map(r=>r.id||'stock:'+r.stockId));
