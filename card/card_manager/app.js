@@ -223,22 +223,23 @@ $('releaseListings').onclick=()=>task(async()=>{
  // them were made up for the test.
  const testLabel=el('label',' Release as a test','testRelease'),test=el('input');test.type='checkbox';testLabel.prepend(test);
  testLabel.append(el('small','Posts to the test group instead. Buyers never see these, and their cost and asking price stay out of your totals.'));
- const list=el('div'),chosen=new Set(),checks=[];
+ const list=el('div'),chosen=new Set(),checks=[],eligible=items.filter(item=>!item.blockedReason),feedback=el('p');feedback.setAttribute('role','alert');
  const send=el('button','Release selected (0)','primary'),cancel=el('button','Cancel');send.disabled=true;
- const update=()=>{send.textContent='Release selected ('+chosen.size+')';send.disabled=!chosen.size;all.checked=items.length>0&&chosen.size===items.length;all.indeterminate=chosen.size>0&&chosen.size<items.length;};
+ const update=()=>{send.textContent='Release selected ('+chosen.size+')';send.disabled=!chosen.size;all.disabled=!eligible.length;all.checked=eligible.length>0&&chosen.size===eligible.length;all.indeterminate=chosen.size>0&&chosen.size<eligible.length;};
  for(const item of items){
   const row=el('label',` #${item.id} ${item.name} · ${item.condition} ${item.slab||''} · ${sgd(item.price)}`),check=el('input');check.type='checkbox';
-  row.style.display='block';check.setAttribute('aria-label','Release '+item.name);check.onchange=()=>{check.checked?chosen.add(item.id):chosen.delete(item.id);update();};checks.push([check,item.id]);row.prepend(check);list.append(row);
+  row.style.display='block';check.setAttribute('aria-label','Release '+item.name);check.disabled=!!item.blockedReason;if(item.blockedReason)row.append(el('strong',' — '+item.blockedReason));check.onchange=()=>{check.checked?chosen.add(item.id):chosen.delete(item.id);update();};if(!item.blockedReason)checks.push([check,item.id]);row.prepend(check);list.append(row);
  }
  all.onchange=()=>{for(const [check,id] of checks){check.checked=all.checked;all.checked?chosen.add(id):chosen.delete(id);}update();};
  if(!items.length)list.append(el('p','No listings awaiting release.'));
  const cleanup=()=>{dialog.close();dialog.remove();};cancel.onclick=cleanup;dialog.oncancel=e=>{e.preventDefault();cleanup();};
  send.onclick=()=>task(async()=>{
-  const ids=[...chosen];send.disabled=true;
+  const ids=[...chosen];send.disabled=true;feedback.textContent='Queuing listings…';
   try {const result=await api('release',{action:'release',ids,test:test.checked});cleanup();status(count(result.released,'listing')+' queued for '+(test.checked?'the test group.':'Telegram.'));}
+  catch(e){feedback.textContent=e.message;}
   finally {if(dialog.isConnected)update();}
  });
- dialog.append(title,hint,testLabel,allLabel,list,cancel,send);document.body.append(dialog);dialog.showModal();
+ update();dialog.append(title,hint,testLabel,allLabel,list,feedback,cancel,send);document.body.append(dialog);dialog.showModal();
 });
 function change(r,field,value){
  r[field]=value;r.error='';
