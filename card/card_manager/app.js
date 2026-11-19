@@ -80,7 +80,8 @@ const sgd=c=>'S$'+money(c);
 // between a walk and the books said nothing about being a test.
 const named=(test,name)=>(test?'[test] ':'')+name;
 const newID=()=>Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
-function status(text,error=false){$('status').textContent=text;$('status').style.background=error?'#8b3535':'#253d2c';}
+let inboxFeedbackTimer;
+function status(text,error=false){if(tab==='inbox'&&!$('workspace').hidden&&$('inboxFeedback')){const feedback=$('inboxFeedback');clearTimeout(inboxFeedbackTimer);feedback.textContent=text;feedback.hidden=!text;feedback.classList.toggle('error',error);$('status').textContent='';if(text&&!error)inboxFeedbackTimer=setTimeout(()=>{feedback.hidden=true;},4000);return;}$('status').textContent=text;$('status').style.background=error?'#8b3535':'#253d2c';}
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function lock(value){busy=value;document.querySelectorAll('#workspace button,#workspace input,#workspace select,#workspace textarea').forEach(n=>n.disabled=value||n.dataset.fixed==='true');}
 async function api(path,body={},blob=false,signal){
@@ -95,7 +96,7 @@ async function api(path,body={},blob=false,signal){
  }catch(e){if(timeout.aborted)throw Error('Request timed out. Reload inventory before retrying changes.');throw e;}
 }
 
-function signOut(clear=true){$('photoDraftDialog').close();clearPhotoDraft();clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();fillPartners($('lotPaidBy'),0);lotPaidByVisible();$('saleReceivedLabel').hidden=$('saleReceivedHint').hidden=true;$('bundleSale').close();$('bundleReceivedLabel').hidden=$('bundleReceivedHint').hidden=true;lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
+function signOut(clear=true){resetInbox();$('photoDraftDialog').close();clearPhotoDraft();clearPosterImage();$('claimPosterDialog').close();posterRows=[];queuePicked.clear();keepSession(null);$('moveBuybackDialog').close();$('moveBuybackCount').textContent='';$('moveBuybackName').value='';$('moveBuybackTarget').replaceChildren();moveBuybackRows=[];moveBuybackPreview=null;$('moveBuybackPreview').replaceChildren();$('moveBuybackError').textContent='';buybackSelection=0;buybackLots=[];$('buybackReports').replaceChildren();$('buybackFilter').value='';clearLedger();clearGiveaway();token='';inventoryPage=0;const md=document.getElementById('marketplaceDialog');if(md){md.close();md.replaceChildren();}$('quickEntry').close();clearQuickPhotos();entryRate=0;quickCard=null;expenses=[];trades=[];$('expenses').replaceChildren();$('trades').replaceChildren();['tradeDialog','expenseDialog','saleEntry'].forEach(id=>$(id).close());template={};templateDirty=false;batches=[];collections=[];claims=[];claimRoute=null;claimTestRoutes=[];claimsLoaded=false;claimPicked.clear();claimOrders=[];claimOffers=[];listingOffers=[];listingOffersLoaded=false;listingOfferTab='pending';$('listingOffers').replaceChildren();$('offerTabHint').textContent='';claimDeliveries=[];claimResult=null;$('claimResult').hidden=true;$('claimResult').replaceChildren();saleRunning=false;claimCheckout=null;for(const u of proofURLs.values())URL.revokeObjectURL(u);proofURLs.clear();checkoutQr='';showCheckoutQr(null);$('claimReady').replaceChildren();$('claimOrders').replaceChildren();['checkoutMailFee','checkoutPayNow','checkoutPickup','checkoutPickupArea','checkoutPayMinutes','checkoutPushBatch','checkoutPushSeconds','checkoutFreeMailFrom'].forEach(id=>$(id).value='');$('claimFilter').value='all';claimTab='cards';$('claimBulkBar').hidden=true;$('claimSales').replaceChildren();fillPartners($('lotPaidBy'),0);lotPaidByVisible();$('saleReceivedLabel').hidden=$('saleReceivedHint').hidden=true;$('bundleSale').close();$('bundleReceivedLabel').hidden=$('bundleReceivedHint').hidden=true;lotEntries=[];$('lotEntries').replaceChildren();$('lotSearch').value='';$('lotResults').replaceChildren();++lotSearchSeq;clearTimeout(lotSearchTimer);lotSearchAbort?.abort();$('lotTotal').value='';$('lotLabel').value='';$('lots').replaceChildren();$('lotSummary').textContent='';$('lotPanel').open=false;$('batches').replaceChildren();$('collections').replaceChildren();['templateIntro','templateItem','templateOutro'].forEach(id=>$(id).value='');clearNormalResults();searchCache.clear();photoLoads.clear();drafts=[];stock=[];selected.clear();dirty.clear();centralRows=[];centralSellers=[];centralTotals=null;centralLoaded=false;centralOwner='all';$('centralRows').replaceChildren();$('centralSeller').replaceChildren();delete $('centralSeller').dataset.owners;$('centralFilter').value='';for(const url of photos.values())URL.revokeObjectURL(url);photos.clear();photoSizes.clear();photoBytes=0;photoObserver.disconnect();referenceLoads.clear();$('rows').replaceChildren();$('workspace').hidden=true;$('login').hidden=false;$('logout').hidden=true;$('password').value='';if(clear)status('Signed out.');}
 async function task(fn){if(busy)return;lock(true);try{clearTimeout(saveTimer);await saveFlight.catch(()=>{});await fn();}catch(e){status(e.message,true);}finally{lock(false);scheduleSave();if(!$('workspace').hidden)render();}}
 async function load(preserve=false,initialData){
  const pending=preserve?[...drafts,...stock].filter(r=>dirty.has(key(r))):[];
@@ -2195,79 +2196,62 @@ window.addEventListener('beforeunload',e=>{if(dirty.size||templateDirty){e.preve
 // itself, and what it could not answer used to sit in a DM nobody on this
 // side could read back. A reply here goes out as the bot, in the
 // conversation they already have open, so they never meet a second voice.
-let inboxThreads=[],inboxMessages=[],inboxWho=0,inboxLoaded=false;
-async function loadInbox(){
- const {threads}=await api('inbox',{action:'list'});
- inboxThreads=threads||[];inboxLoaded=true;
- // The badge counts people, not messages, and now it counts them from the
- // list in hand rather than the number sign-in happened to send.
- inboxUnread=inboxThreads.filter(t=>t.unread).length;
- if(inboxWho&&!inboxThreads.some(t=>t.userId===inboxWho)){inboxWho=0;inboxMessages=[];}
- renderInbox();
-}
-async function openInboxThread(userId){
- const out=await api('inbox',{action:'open',userId});
- inboxWho=userId;inboxMessages=out.messages||[];
- if(typeof out.unread==='number')inboxUnread=out.unread;
- const thread=inboxThreads.find(t=>t.userId===userId);if(thread)thread.unread=0;
- renderInbox();
-}
-// Nobody reads a timestamp to the second in a chat: today is a time of day,
-// anything older is the day it happened.
-const inboxWhen=value=>{
- const at=new Date(value),now=new Date();
- return at.toDateString()===now.toDateString()
-  ?at.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-  :at.toLocaleDateString([],{day:'numeric',month:'short'});
-};
+let inboxThreads=[],inboxMessages=[],inboxWho=0,inboxLoaded=false,inboxSequence=0,inboxSending=false,inboxPolling=false,inboxHasOlder=false;
+const inboxDrafts=new Map(),inboxURLs=new Set();
+function sizeInboxViewport(){document.documentElement.style.setProperty('--inbox-viewport-height',`${window.visualViewport?.height||window.innerHeight}px`);}
+window.visualViewport?.addEventListener('resize',sizeInboxViewport);window.addEventListener('resize',sizeInboxViewport);sizeInboxViewport();
+const inboxWhen=value=>new Date(value).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 const inboxName=t=>t.name||('Telegram user '+t.userId);
-function renderInbox(){
- // The badge is drawn here too: render() owns it, and the inbox changes it
- // without going back through a full redraw of the listing table.
- $('inboxCount').textContent=inboxUnread;
- const list=$('inboxThreads');list.replaceChildren();
- if(!inboxThreads.length)list.append(el('p','Nobody has written to the bot yet.','inboxEmpty'));
- for(const thread of inboxThreads){
-  const row=el('button',undefined,'inboxThread'+(thread.userId===inboxWho?' active':''));row.type='button';
-  const head=el('strong',inboxName(thread));
-  if(thread.unread)head.append(' ',el('span',String(thread.unread),'unread'));
-  const preview=thread.lastFile?'Sent a photo or file':(thread.last||'');
-  row.append(head,el('small',(thread.incoming?'':'You: ')+preview),el('small',inboxWhen(thread.at)));
-  row.setAttribute('aria-label','Open the conversation with '+inboxName(thread)+(thread.unread?', '+thread.unread+' unread':''));
-  row.onclick=()=>task(()=>openInboxThread(thread.userId));
-  list.append(row);
- }
- const who=$('inboxWho'),body=$('inboxMessages');who.replaceChildren();body.replaceChildren();
- if(!inboxWho){
-  $('inboxReplyForm').hidden=true;
-  body.append(el('p','Pick somebody on the left to read what they said.','inboxEmpty'));
-  return;
- }
- const current=inboxThreads.find(t=>t.userId===inboxWho);
- who.textContent=current?inboxName(current):('Telegram user '+inboxWho);
- $('inboxReplyForm').hidden=false;
- if(!inboxMessages.length)body.append(el('p','Nothing in this conversation yet.','inboxEmpty'));
- for(const m of inboxMessages){
-  const bubble=el('div',undefined,'inboxMessage'+(m.incoming?'':' out'));
-  bubble.append(el('span',m.file?('Sent a photo or file'+(m.body?' · '+m.body:'')):m.body));
-  bubble.append(el('small',(m.incoming?'':'Sent as the bot · ')+inboxWhen(m.at)));
-  body.append(bubble);
- }
- body.scrollTop=body.scrollHeight;
+const inboxMediaObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){inboxMediaObserver.unobserve(entry.target);entry.target.click();}},{root:$("inboxMessages"),rootMargin:"80px"});
+function clearInboxMedia(){inboxMediaObserver.disconnect();for(const url of inboxURLs)URL.revokeObjectURL(url);inboxURLs.clear();}
+function resetInbox(){++inboxSequence;clearInboxMedia();inboxDrafts.clear();inboxThreads=[];inboxMessages=[];inboxWho=0;inboxLoaded=false;inboxUnread=0;$('inboxReply').value='';$('inboxFile').value='';renderInbox();}
+function inboxDraft(){return inboxDrafts.get(inboxWho)||{text:'',file:null};}
+function saveInboxDraft(){if(inboxWho)inboxDrafts.set(inboxWho,{...inboxDraft(),text:$('inboxReply').value});}
+function showInboxDraft(){const d=inboxDraft();$('inboxReply').value=d.text;$('inboxFileName').textContent=d.file?.name||'';$('inboxRemoveFile').hidden=!d.file;$('inboxSend').disabled=inboxSending;resizeInboxComposer();}
+async function loadInbox(){const out=await api('inbox',{action:'list'});inboxThreads=out.threads||[];inboxLoaded=true;inboxUnread=inboxThreads.filter(t=>t.unread).length;renderInbox();}
+async function openInboxThread(userId){
+ saveInboxDraft();const seq=++inboxSequence;inboxWho=userId;inboxMessages=[];inboxHasOlder=false;clearInboxMedia();renderInbox();showInboxDraft();
+ $('inboxMessages').textContent='Loading conversation…';
+ try{const out=await api('inbox',{action:'open',userId});if(seq!==inboxSequence)return;inboxMessages=out.messages||[];inboxHasOlder=inboxMessages.length===60;inboxUnread=out.unread??inboxUnread;const t=inboxThreads.find(t=>t.userId===userId);if(t)t.unread=0;renderInboxMessages(true);renderInbox();}catch(e){if(seq===inboxSequence)$('inboxMessages').textContent='Could not load this conversation. Use Refresh to retry.';throw e;}
 }
-$('refreshInbox').onclick=()=>task(async()=>{inboxLoaded=false;await loadInbox();if(inboxWho)await openInboxThread(inboxWho);status('Inbox refreshed.');});
-$('inboxReplyForm').onsubmit=e=>{e.preventDefault();task(async()=>{
- const box=$('inboxReply'),text=box.value.trim();
- if(!text||!inboxWho)return;
- const out=await api('inbox',{action:'reply',userId:inboxWho,text});
- // Cleared only once Telegram has taken it: until then this box holds the
- // only copy of what was written.
- box.value='';
- if(out.messages)inboxMessages=out.messages;
- if(typeof out.unread==='number')inboxUnread=out.unread;
- await loadInbox();renderInbox();
- status(out.unrecorded?'Sent, but it could not be saved to the conversation.':'Sent.',!!out.unrecorded);
-});};
+function renderInbox(){
+ if(tab==='inbox')$('status').textContent='';
+ $('inboxCount').textContent=inboxUnread;$('inboxPanel').classList.toggle('hasConversation',!!inboxWho);
+ const list=$('inboxThreads'),query=$('inboxSearch').value.trim().toLowerCase();list.replaceChildren();
+ const threads=inboxThreads.filter(t=>(!$('inboxUnreadOnly').checked||t.unread)&&(`${inboxName(t)} ${t.userId} ${t.last||''}`).toLowerCase().includes(query));
+ if(!threads.length)list.append(el('p',inboxLoaded?'No conversations match.':'Loading conversations…','inboxEmpty'));
+ for(const t of threads){const row=el('button',undefined,'inboxThread'+(t.userId===inboxWho?' active':''));row.type='button';row.setAttribute('aria-pressed',String(t.userId===inboxWho));const head=el('strong',inboxName(t));if(t.unread)head.append(' ',el('span',String(t.unread),'unread'));const avatar=el('span',inboxName(t).replace('@','').slice(0,2).toUpperCase(),'inboxAvatar');avatar.setAttribute('aria-hidden','true');row.append(avatar,head,el('small',(t.incoming?'':'Shop: ')+(t.last||(t.lastFile?'Attachment':''))),el('small',inboxWhen(t.at)));row.onclick=()=>openInboxThread(t.userId).catch(e=>status(e.message,true));list.append(row);}
+ $('inboxWho').textContent=inboxWho?inboxName(inboxThreads.find(t=>t.userId===inboxWho)||{userId:inboxWho}):'Your messages';$('inboxReplyForm').hidden=!inboxWho;
+ if(!inboxWho){$('inboxMessages').replaceChildren(el('p','Select a conversation to read messages and share files.','inboxEmpty'));}
+}
+function inboxAttachmentButton(m){
+ const button=el('button',m.attachment.type==='image'?'View photo':('Open '+(m.attachment.name||'attachment')),'inboxAttachment');button.type='button';
+ button.onclick=async()=>{button.disabled=true;button.textContent='Loading…';const seq=inboxSequence,userId=inboxWho;
+ try{const blob=await api('inbox',{action:'attachment',userId,messageId:m.id},true);if(seq!==inboxSequence||!button.isConnected)return;const url=URL.createObjectURL(blob);inboxURLs.add(url);const wrap=el('div'),body=$('inboxMessages'),scrollTop=body.scrollTop,stick=body.scrollHeight-body.scrollTop-body.clientHeight<80;const keepBottom=()=>{if(seq===inboxSequence&&stick&&Math.abs(body.scrollTop-scrollTop)<2)body.scrollTop=body.scrollHeight;};
+ if(['image/jpeg','image/png','image/gif','image/webp'].includes(blob.type)){const img=el('img');img.src=url;img.alt=m.attachment.name||'Photo';img.className='inboxMedia';img.onload=keepBottom;wrap.append(img);}
+ else if(blob.type.startsWith('video/')||blob.type.startsWith('audio/')){const media=el(blob.type.startsWith('video/')?'video':'audio');media.src=url;media.controls=true;media.preload='metadata';media.className='inboxMedia';media.onloadedmetadata=keepBottom;wrap.append(media);}
+ const link=el('a','Download '+(m.attachment.name||'attachment'));link.href=url;link.download=m.attachment.name||'attachment';wrap.append(link);button.replaceWith(wrap);
+ }catch(e){button.disabled=false;button.textContent='Retry attachment';status(e.message,true);}};if(m.attachment.type==='image')inboxMediaObserver.observe(button);return button;
+}
+function renderInboxMessages(bottom=false){
+ const body=$('inboxMessages'),oldTop=body.scrollTop,nearBottom=body.scrollHeight-body.scrollTop-body.clientHeight<80;clearInboxMedia();body.replaceChildren();
+ if(inboxHasOlder){const more=el('button','Load older messages');more.type='button';more.onclick=async()=>{more.disabled=true;const seq=inboxSequence,height=body.scrollHeight,top=body.scrollTop;try{const out=await api('inbox',{action:'open',userId:inboxWho,before:inboxMessages[0].id});if(seq!==inboxSequence)return;inboxHasOlder=out.messages.length===60;inboxMessages=[...out.messages,...inboxMessages];renderInboxMessages();body.scrollTop=top+body.scrollHeight-height;}catch(e){status(e.message,true);more.disabled=false;}};body.append(more);}
+ let day='';for(const m of inboxMessages){const date=new Date(m.at).toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});if(date!==day){body.append(el('div',date,'inboxDay'));day=date;}const bubble=el('div',undefined,'inboxMessage'+(m.incoming?'':' out'));if(m.file){if(m.attachment?.type)bubble.append(inboxAttachmentButton(m));else bubble.append(el('span','Attachment unavailable — this older message did not save its file.','hint'));}if(m.body)bubble.append(el('span',m.body));bubble.append(el('small',(m.incoming?'':m.sentBy?'Staff · ':'Bot · ')+inboxWhen(m.at)));body.append(bubble);}
+ if(!inboxMessages.length)body.append(el('p','No messages yet.','inboxEmpty'));body.scrollTop=bottom||nearBottom?body.scrollHeight:oldTop;
+}
+async function refreshInbox(){if(inboxPolling||inboxSending)return;inboxPolling=true;const seq=inboxSequence,userId=inboxWho;try{await loadInbox();if(userId){const out=await api('inbox',{action:'open',userId});if(seq!==inboxSequence)return;const recent=out.messages||[],byId=new Map(inboxMessages.map(m=>[m.id,m]));let changed=false;for(const m of recent){if(!byId.has(m.id))changed=true;byId.set(m.id,m);}if(changed){inboxMessages=[...byId.values()].sort((a,b)=>a.id-b.id);renderInboxMessages();}inboxUnread=out.unread??inboxUnread;const t=inboxThreads.find(t=>t.userId===userId);if(t)t.unread=0;renderInbox();}}finally{inboxPolling=false;}}
+$('refreshInbox').onclick=()=>{if(inboxWho&&!inboxMessages.length)openInboxThread(inboxWho).catch(e=>status(e.message,true));else refreshInbox().catch(e=>status(e.message,true));};
+$('inboxChatRefresh').onclick=()=>$('refreshInbox').onclick();
+$('inboxSearch').oninput=renderInbox;$('inboxUnreadOnly').onchange=renderInbox;
+$('inboxBack').onclick=()=>{saveInboxDraft();++inboxSequence;inboxWho=0;clearInboxMedia();renderInbox();};
+function resizeInboxComposer(){const box=$('inboxReply');box.style.height='44px';box.style.height=Math.min(88,box.scrollHeight)+'px';}
+$('inboxReply').oninput=()=>{saveInboxDraft();resizeInboxComposer();};
+$('inboxReply').onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&!e.isComposing){e.preventDefault();$('inboxReplyForm').requestSubmit();}};
+$('inboxAttach').onclick=()=>$('inboxFile').click();
+$('inboxFile').onchange=e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(file.size>20*1024*1024){status('Choose a file up to 20 MB.',true);return;}saveInboxDraft();inboxDrafts.set(inboxWho,{...inboxDraft(),file});showInboxDraft();};
+$('inboxRemoveFile').onclick=()=>{inboxDrafts.set(inboxWho,{...inboxDraft(),file:null});showInboxDraft();};
+$('inboxReplyForm').onsubmit=async e=>{e.preventDefault();if(inboxSending||!inboxWho)return;saveInboxDraft();const userId=inboxWho,draft=inboxDraft(),text=draft.text.trim();if(!text&&!draft.file)return;if(draft.file&&Array.from(text).length>1024){status('Attachment captions can have up to 1024 characters.',true);return;}inboxSending=true;$('inboxSend').disabled=true;$('inboxSend').textContent='Sending…';try{let request={action:'reply',userId,text};if(draft.file){request=new FormData();request.append('userId',userId);request.append('text',text);request.append('file',draft.file);}const out=await api('inbox',request);const latest=inboxDrafts.get(userId);if(latest?.text===draft.text&&latest?.file===draft.file)inboxDrafts.delete(userId);if(userId===inboxWho)showInboxDraft();status(out.unrecorded?'Delivered, but the message could not be saved. Do not resend.':'Sent.',!!out.unrecorded);}catch(e){status(e.message,true);}finally{inboxSending=false;$('inboxSend').disabled=false;$('inboxSend').textContent='Send';}refreshInbox().catch(e=>status(e.message,true));};
+setInterval(()=>{if(tab==='inbox'&&token&&!document.hidden&&!$('workspace').hidden)refreshInbox().catch(()=>{});},15000);
 
 // The card show list. Cards that are paid for and still here: what we are
 // bringing to the show, what is waiting to be posted, who wants a meetup,

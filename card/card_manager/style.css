@@ -274,3 +274,57 @@
 .holdActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .holdActions button{font-size:12px;padding:5px 10px}
 .holdEmpty{opacity:.7;font-size:13px;padding:14px 2px}
+/* A bounded workspace keeps the composer visible and each pane independently scrollable. */
+.inboxLayout{grid-template-columns:320px minmax(0,1fr);gap:0;height:clamp(480px,76dvh,940px);border:1px solid #d7dde5;border-radius:14px;overflow:hidden;background:#fff;align-items:stretch}
+.inboxSidebar{display:flex;flex-direction:column;min-height:0;padding:14px;gap:12px;border-right:1px solid #d7dde5;background:#fafbfd}
+.inboxSidebar input[type=search]{width:100%;min-width:0}
+.inboxThreads{max-height:none;min-height:0;flex:1;gap:5px}
+.inboxThread{padding:14px 12px;border-color:transparent;border-radius:10px}
+.inboxThread.active{background:#eaf1ff}.inboxThread strong{font-size:15px;margin-bottom:5px}.inboxThread small{line-height:1.6}
+.inboxConversation{display:flex;flex-direction:column;min-width:0;min-height:0}
+.inboxHeader{display:flex;gap:12px;align-items:center;padding:18px 22px;border-bottom:1px solid #d7dde5;min-height:64px}.inboxWho{margin:0;font-size:17px}#inboxBack{display:none}
+.inboxMessages{flex:1;min-height:0;max-height:none;border:0;border-radius:0;padding:22px;gap:12px;overscroll-behavior:contain;background:#f3f6fb}
+.inboxMessage{padding:12px 15px;max-width:85%;line-height:1.6;box-shadow:0 1px 2px #142d5010}.inboxMessage small{margin-top:8px}.inboxDay{text-align:center;font-size:12px;color:#5c6b7a;padding:8px}
+.inboxReply{margin:0;padding:14px 20px;border-top:1px solid #d7dde5;background:#fff}.inboxReply textarea{width:100%;resize:vertical;max-height:160px;min-height:70px}.inboxComposeActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#inboxSend{margin-left:auto}.inboxMedia{display:block;max-width:100%;max-height:340px;border-radius:8px;margin-bottom:10px}.inboxAttachment{text-align:left;white-space:normal;overflow-wrap:anywhere}.inboxEmpty{margin:auto;padding:28px;text-align:center}.inboxComposeActions .hint{overflow-wrap:anywhere;max-width:200px}
+@media(max-width:700px){.inboxLayout{grid-template-columns:minmax(0,1fr);height:75dvh;min-height:430px}.inboxConversation{display:none}.hasConversation .inboxSidebar{display:none}.hasConversation .inboxConversation{display:flex}#inboxBack{display:block}.inboxHeader{padding:12px}.inboxMessages{padding:12px}.inboxReply{padding:12px}.inboxMessage{max-width:92%}}
+
+#workspace:has(#inboxPanel:not([hidden]))>.heading,#workspace:has(#inboxPanel:not([hidden]))>#totals,#workspace:has(#inboxPanel:not([hidden]))>#totalsScope,#workspace:has(#inboxPanel:not([hidden]))>.entrySettings{display:none}
+#inboxPanel>.claimHeading{display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:16px;margin:12px 0}
+#inboxPanel>.claimHeading button{width:auto;margin:0}#inboxPanel>.claimHeading .hint{margin:4px 0}
+#inboxPanel .inboxLayout{height:calc(100dvh - 260px);min-height:400px}
+/* Mini-app inbox: the message pane yields space to the composer, never the reverse. */
+.inboxThread{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:10px;align-items:center}
+.inboxAvatar{grid-row:1/4;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#e5eee7;color:#355d43;font-size:14px;font-weight:700}
+.inboxThread.active{background:#edf4ee;border-color:#b6cbb9;box-shadow:inset 3px 0 0 #41694c}
+.inboxThread .unread{background:#355d43}.inboxThread strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inboxMessage{align-self:flex-start;border-radius:14px 14px 14px 4px;max-width:85%;font-size:14px}
+.inboxMessage.out{background:#e8f2e9;border-color:#c7dccb;border-radius:14px 14px 4px 14px}
+.inboxMessage a{display:block;color:#315d40;font-size:12px;text-underline-offset:3px;overflow-wrap:anywhere}
+.inboxMedia{object-fit:contain;max-height:260px}.inboxWho{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.inboxHeader,.inboxReply{flex-shrink:0}.inboxHeader button{flex-shrink:0}
+.inboxReply textarea{min-height:48px;resize:none}.inboxComposeActions .hint{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body:has(#inboxPanel:not([hidden])) #status{top:66px;bottom:auto;z-index:20;pointer-events:none}
+@media(max-width:750px){
+ body:has(#inboxPanel:not([hidden])){position:fixed;inset:0;display:flex;flex-direction:column;height:var(--inbox-viewport-height,100dvh);overflow:hidden;padding-bottom:0}
+ body:has(#inboxPanel:not([hidden]))>header{height:52px;flex-shrink:0}
+ body:has(#inboxPanel:not([hidden]))>main{flex:1;min-height:0;width:100%;padding:0 8px max(8px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+ #workspace:has(#inboxPanel:not([hidden])){display:flex;flex-direction:column;flex:1;min-height:0}
+ #workspace:has(#inboxPanel:not([hidden]))>.tabs{margin:0 0 8px;flex-shrink:0;min-height:46px}
+ #inboxPanel:not([hidden]){display:flex;flex-direction:column;flex:1;min-height:0}
+ #inboxPanel>.claimHeading{margin:4px 4px 12px;gap:8px;flex-shrink:0}#inboxPanel>.claimHeading h2{font-size:21px;margin:0}
+ #inboxPanel>.claimHeading .hint{font-size:11px}#inboxPanel.hasConversation>.claimHeading{display:none}
+ #inboxPanel .inboxLayout{height:auto;min-height:0;flex:1;grid-template-columns:minmax(0,1fr);border-radius:12px}
+ #inboxPanel .inboxConversation{display:none}#inboxPanel.hasConversation .inboxConversation{display:flex}
+ #inboxPanel.hasConversation .inboxSidebar{display:none}#inboxBack{display:block;padding:8px 10px}
+ .inboxHeader{min-height:58px;padding:6px 10px;gap:12px}.inboxWho{font-size:16px}
+ .inboxMessages{padding:12px 10px;gap:10px}.inboxMessage{padding:9px 12px;max-width:92%;line-height:1.5}.inboxMessage small{margin-top:5px;font-size:10px}
+ .inboxReply{padding:8px;gap:6px}.inboxReply textarea{height:44px;min-height:44px;max-height:88px;line-height:22px;padding:10px 12px}
+ .inboxReply>small{display:none}.inboxComposeActions{gap:6px;flex-wrap:nowrap}.inboxComposeActions .filebutton{white-space:nowrap;padding:10px}
+ #inboxSend{padding:10px 16px}.inboxComposeActions .hint{max-width:none;font-size:11px}#inboxRemoveFile{font-size:11px;padding:8px 6px}
+ .inboxSidebar{padding:12px;gap:10px}.inboxSidebar .check{display:flex;align-items:center;gap:8px;min-height:36px}.inboxThread{padding:12px 8px}
+ .inboxMedia{max-height:200px;max-width:100%}
+ body:has(#inboxPanel:not([hidden])) #status{top:54px;bottom:auto;max-height:90px;font-size:12px;width:auto;min-width:180px;padding:10px 14px}
+}
+@media(max-width:750px) and (max-height:500px){body:has(#inboxPanel.hasConversation:not([hidden]))>header{display:none}.inboxHeader{min-height:48px;padding:2px 8px}.inboxMedia{max-height:110px}}
+#inboxFeedback{flex-shrink:0;margin:0 0 8px;padding:9px 12px;border-radius:8px;background:#e8f2e9;color:#31553d;font-size:12px;line-height:1.4}#inboxFeedback.error{background:#fff0ed;color:#8b3535}
+#inboxChatRefresh{margin-left:auto;font-size:22px;line-height:22px;min-width:44px;min-height:44px;padding:8px}
