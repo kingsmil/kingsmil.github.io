@@ -120,6 +120,7 @@ async function load(preserve=false,initialData){
   const fresh=target[index];
   if(fresh.revision!==r.revision)r.error='';
   r.revision=fresh.revision;r.reserved=fresh.reserved;r.reservedName=fresh.reservedName;r.sold=fresh.sold;
+  r.claimPrice=fresh.claimPrice;r.claimStatus=fresh.claimStatus;
   if(fresh.sold&&!r.saleDirty)r.sale=fresh.sale;
   target[index]=r;dirty.add(key(r));
  });
@@ -401,7 +402,7 @@ function renderQueue(){
  $('queuePoster').disabled=busy||!queuePicked.size||queuePicked.size>posterLimit;
  $('queuePoster').textContent=queuePicked.size>posterLimit?'Select up to 20 for a teaser':'Generate teaser poster';
  $('queueBack').textContent='Back to listings ('+queuePicked.size+')';$('queueBack').disabled=busy||!queuePicked.size;
- if(!rows.length){list.append(el('p','The queue is empty. Move cards here with Move to claims on Available.','empty'));return;}
+ if(!rows.length){list.append(el('p','The queue is empty. Add cards with Move to claims on Available; they stay on sale there too.','empty'));return;}
  for(const s of rows){
   const row=el('div',undefined,'queueRow'),pick=document.createElement('input');pick.type='checkbox';pick.checked=queuePicked.has(s.id);pick.setAttribute('aria-label','Select '+s.name);
   pick.onchange=()=>{if(pick.checked)queuePicked.add(s.id);else queuePicked.delete(s.id);renderQueue();};
@@ -435,17 +436,17 @@ async function repriceQueued(s,price){
  status(s.name+' is now '+sgd(price)+'.');
 }
 async function queueRemove(s){
- if(!await confirmAction('Take this card out of the claim queue?','It leaves the queue and goes back to Available at '+sgd(s.listingPrice)+', the price it was listed at. Nothing was posted for it.',[{name:s.name,price:s.price,sale:s.listingPrice}]))return;
+ if(!await confirmAction('Take this card out of the claim queue?','It stops going cheap and is left on sale in Available at '+sgd(s.listingPrice)+', where it has been all along. Nothing was posted for it.',[{name:s.name,price:s.price,sale:s.listingPrice}]))return;
  await claimWrite({action:'change',saleId:s.id,revision:s.revision,commandKey:newID(),claimAction:'convert'});
  queuePicked.delete(s.id);
  await loadClaims();await load(true);
- status(s.name+' moved back to Available.');
+ status(s.name+' taken out of the claim queue.');
 }
 async function queueBack(){
  const rows=claims.filter(claimQueued).filter(s=>queuePicked.has(s.id));if(!rows.length)return;
- if(!await confirmAction('Move '+rows.length+(rows.length===1?' card':' cards')+' back to listings?','They leave the Claim queue and go back to Available at the prices they were listed at. Nothing was posted for them.',rows.map(s=>({name:s.name,price:s.price,sale:s.listingPrice}))))return;
+ if(!await confirmAction('Take '+rows.length+(rows.length===1?' card':' cards')+' out of the claim queue?','They stop going cheap and are left on sale in Available at the prices they were listed at, where they have been all along. Nothing was posted for them.',rows.map(s=>({name:s.name,price:s.price,sale:s.listingPrice}))))return;
  const failed=[];for(const s of rows){try{await claimWrite({action:'change',saleId:s.id,revision:s.revision,commandKey:newID(),claimAction:'convert'});}catch(e){failed.push(s.name+': '+e.message);}}
- queuePicked.clear();await loadClaims();await load(true);status(failed.length?failed.length+' could not move: '+failed.join('; '):'Moved back to Available.',failed.length>0);
+ queuePicked.clear();await loadClaims();await load(true);status(failed.length?failed.length+' could not move: '+failed.join('; '):'Taken out of the claim queue.',failed.length>0);
 }
 $('queueAll').onchange=()=>{const rows=claims.filter(claimQueued);if($('queueAll').checked)rows.forEach(s=>queuePicked.add(s.id));else queuePicked.clear();renderQueue();};
 $('queueReleaseAll').onclick=()=>task(()=>releaseQueue(true));
@@ -800,8 +801,8 @@ $('claimBulkClear').onclick=()=>{claimPicked.clear();renderClaims();};
 for(const b of claimBulkActions)$(b.id).onclick=()=>task(()=>runClaimBulk(b));
 $('endSale').onclick=()=>task(async()=>{
  const live=claims.filter(s=>s.status==='open'&&['published','queued'].includes(s.publicationStatus)).length;
- if(!await confirmAction('End the claim sale?','Unsold cards ('+live+') stop taking claims and go back to Available at the prices they were listed at; their claim posts come down. Cards already paid for are sold. Buyers with paid cards are asked once how to get them: the next card show, mail (+shipping), a meetup, or we keep them. Unpaid claims keep their 10-minute timer.',[]))return;
- const r=await claimWrite({action:'end-sale'});await loadClaims();await load(true);status('Claim sale ended · '+r.unlisted+' unsold back to Available · '+(r.deliveries||[]).length+' buyer(s) asked how to get their cards.');
+ if(!await confirmAction('End the claim sale?','Unsold cards ('+live+') stop taking claims and are left on sale in Available at the prices they were listed at; their claim posts come down. Cards already paid for are sold. Buyers with paid cards are asked once how to get them: the next card show, mail (+shipping), a meetup, or we keep them. Unpaid claims keep their 10-minute timer.',[]))return;
+ const r=await claimWrite({action:'end-sale'});await loadClaims();await load(true);status('Claim sale ended · '+r.unlisted+' unsold back to full price · '+(r.deliveries||[]).length+' buyer(s) asked how to get their cards.');
 });
 $('refreshClaims').onclick=()=>task(async()=>{await loadClaims();status('Claims updated.');});
 const saveTestRoute=(kind,field,what)=>task(async()=>{
@@ -847,6 +848,15 @@ function render(){
   // Somebody tapped Buy on this card's group post, so it is off the market
   // until it is paid for or let go. The release is here because the tap was
   // on a public post and nothing on that post can undo it.
+  // The card is also going cheap in the claim queue. It is ordinary
+  // available inventory and sells here at its full price, so the row says
+  // what the other price is and whether anybody has taken it.
+  if(r.claimPrice&&!r.sold){const q=el('div',undefined,'claimRow');
+   q.append(el('strong','⚡ Also in the claim queue at '+sgd(r.claimPrice)));
+   q.append(el('small',r.claimStatus==='open'
+    ?'Still on sale here at '+sgd(r.price)+'. Whoever buys or claims it first gets it, and the other side then lets go.'
+    :'Claimed by a buyer in the claim sale. Cancel that claim under Claims before selling it here.'));
+   card.append(q);}
   if(r.reserved&&!r.sold){const held=el('div',undefined,'heldRow');held.append(el('strong','🔒 Being bought by '+(r.reservedName||'a buyer')),el('small','Send them the bill in Telegram. Release it if they go quiet, and the post offers it again.'));const free=el('button','Release it','releaseHold');free.type='button';free.setAttribute('aria-label','Release '+(r.name||'this card')+' back onto the market');free.onclick=()=>task(()=>releaseHold(r));held.append(free);card.append(held);}
   if(r.sold){const edit=el('button','Sold for '+sgd(r.sale)+' · Edit','editSoldPrice');edit.type='button';edit.setAttribute('aria-label','Edit sold price for '+r.name);edit.onclick=()=>task(()=>editSales([r]));card.append(edit);}
   if(r.costBatchId)card.append(el('small','Buyback · '+r.costBatchLabel+' · batch #'+r.costBatchId));
@@ -1475,7 +1485,7 @@ function confirmAction(title,text,rows){return new Promise(resolve=>{
 function claimMovePrice(price,pct,round){const raw=Math.round(price*pct/100);return round?Math.max(100,Math.round(raw/100)*100):Math.max(1,raw);}
 function openClaimMove(rows){
  const key=newID(),touched=new Set(),list=$('claimMoveRows');list.replaceChildren();$('claimMoveError').textContent='';$('claimMoveTest').checked=rows.length>0&&rows.every(r=>r.test);$('claimMovePct').value='100';$('claimMoveRound').checked=false;
- const one=rows.length===1;$('claimMoveCount').textContent=rows.length+(one?' listing leaves Available and waits':' listings leave Available and wait')+' in the Claim queue at its claim price. Each card keeps the price it is listed at and goes back to it if the sale ends without a buyer. Any shop-topic post comes down; nothing is posted until you release the claim sale.';
+ const one=rows.length===1;$('claimMoveCount').textContent=rows.length+(one?' listing joins':' listings join')+' the Claim queue at its claim price, and '+(one?'stays':'stay')+' in Available at the price it is listed at. The shop-topic post stays up, so the card is on sale in both places and the first buyer to take it wins. Nothing is posted in Claims until you release the claim sale.';
  const inputs=rows.map(r=>{const row=el('div',undefined,'claimMoveRow'),input=el('input');input.inputMode='decimal';input.setAttribute('aria-label','Claim price for '+r.name+' in SGD');input.oninput=()=>touched.add(input);row.append(el('span',r.name,'claimMoveName'),el('span',(r.costHidden||r.cost==null?'Cost unavailable':'Cost '+sgd(r.cost))+' · listed '+sgd(r.price),'hint'),input);list.append(row);return input;});
  const fill=()=>{const pct=Number($('claimMovePct').value);rows.forEach((r,i)=>{if(!touched.has(inputs[i]))inputs[i].value=pct>0&&!r.costHidden&&r.cost>0?money(claimMovePrice(r.cost,pct,$('claimMoveRound').checked)):'';});};
  $('claimMovePct').oninput=fill;$('claimMoveRound').onchange=fill;fill();
@@ -1489,10 +1499,10 @@ function openClaimMove(rows){
  $('claimMove').showModal();
 }
 // A claim is a discount on a card we already have, so it starts from a
-// listing in Available: that listing price is what the card goes back to if
-// the sale ends without a buyer. A draft has no listing price yet, so it is
-// submitted as a listing first.
-$('moveToClaims').onclick=()=>task(async()=>{const rows=picked();if(!rows.length)throw Error('Select the cards to move first.');if(tab!=='stock')throw Error('Submit these as listings first. A claim is a discount on a card in Available.');if(dirty.size&&rows.some(r=>dirty.has(key(r))))throw Error('Save your changes to these listings first.');openClaimMove(rows);});
+// listing in Available and the card stays there, on sale at its listing
+// price, for as long as the claim runs. A draft has no listing price yet, so
+// it is submitted as a listing first.
+$('moveToClaims').onclick=()=>task(async()=>{const rows=picked();if(!rows.length)throw Error('Select the cards to move first.');if(tab!=='stock')throw Error('Submit these as listings first. A claim is a discount on a card in Available.');if(dirty.size&&rows.some(r=>dirty.has(key(r))))throw Error('Save your changes to these listings first.');const already=rows.filter(r=>r.claimPrice);if(already.length)throw Error(already.length===1?already[0].name+' is already in the claim queue.':already.length+' of these are already in the claim queue.');openClaimMove(rows);});
 $('publish').onclick=()=>task(async()=>{
  const rows=picked();if(!await saveRows(rows)){status('Fix the highlighted rows first.',true);return;}
  const invalid=rows.filter(r=>r.price<=0||![0,1,2,10].includes(r.photos.length)||(r.photos.length!==2&&r.photos.some(p=>!p)));if(invalid.length)throw Error('Each card needs an asking price. Photos are optional.');

@@ -224,6 +224,12 @@
 .heldRow small{display:block;margin:4px 0 8px;color:#75653a}
 .releaseHold{min-height:34px;font-size:12px}
 
+/* A card in the claim queue is still in Available, at its own price. The
+   row says so in the claim sale's colour, not the hold's. */
+.claimRow{display:block;margin:8px 0;padding:10px 12px;border:1px solid #7c5cd6;border-radius:10px;background:#f6f2ff}
+.claimRow strong{display:block;font-size:13px;color:#432a86}
+.claimRow small{display:block;margin-top:4px;color:#5c4a8a}
+
 /* The test switch sits apart from the card list: it changes where every
    selected card goes, not which cards are selected. */
 .testRelease{display:block;margin:10px 0;padding:8px 10px;border:1px solid #c9a227;border-radius:8px;background:#fffaea}
