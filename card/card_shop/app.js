@@ -676,7 +676,7 @@ async function sendRequest() {
  }
 }
 
-const submissionState = {pending: 'Waiting for the shop', quoted: 'Quoted', accepted: 'Accepted', declined: 'Declined', listed: 'Listed', sold: 'Sold', removed: 'Removed'};
+const submissionState = {pending: 'Waiting for the shop', quoted: 'Quoted', accepted: 'Accepted', declined: 'Declined', listed: 'Listed', sold: 'Sold', removed: 'Removed', withdrawn: 'Withdrawn'};
 const submissionKind = {request: 'Request', buyback: 'Sell to us', consign: 'Consignment'};
 async function loadSubmissions(offset = 0) {
  try {
@@ -697,14 +697,24 @@ async function loadSubmissions(offset = 0) {
    row.appendChild(el('p', submissionState[record.status] || record.status, 'state'));
    if (record.quote) row.appendChild(el('p', 'The shop offered ' + money(record.quote), 'meta'));
    if (record.decision) row.appendChild(el('p', record.decision, 'meta'));
-   if (record.kind === 'buyback' && ['pending', 'quoted', 'accepted', 'declined'].includes(record.status)) {
+   // Mirrors storage.ServiceWithdrawable.
+   const withdrawable = record.kind === 'buyback' ? ['pending', 'quoted', 'accepted', 'declined'] : record.kind === 'request' ? ['pending', 'accepted'] : [];
+   if (withdrawable.includes(record.status)) {
     const withdraw = el('button', 'Withdraw submission', 'secondary');
     withdraw.type = 'button';
+    // Two taps, no dialog, the same as withdrawing an offer: the first asks.
+    let armed = false;
     withdraw.addEventListener('click', async () => {
+     if (!armed) {
+      armed = true;
+      withdraw.textContent = 'Tap again to withdraw';
+      return;
+     }
      withdraw.disabled = true;
      try {
       await api('submission-withdraw', {id: record.id});
       await loadSubmissions();
+      status('Submission withdrawn. The shop has been told.');
      } catch (failure) { fail(failure); withdraw.disabled = false; }
     });
     row.appendChild(withdraw);
